@@ -1,0 +1,64 @@
+require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+
+const authRoutes = require('./routes/auth.routes');
+const entriesRoutes = require('./routes/entries.routes');
+const employeesRoutes = require('./routes/employees.routes');
+const reportsRoutes = require('./routes/reports.routes');
+
+const app = express();
+
+// Trust the hosting platform's reverse proxy (Render/Railway/etc sit behind one)
+// so req.ip and rate limiting work correctly.
+app.set('trust proxy', 1);
+
+app.use(helmet());
+app.use(express.json({ limit: '200kb' })); // small cap — this app doesn't need big payloads
+
+const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
+app.use(
+  cors({
+    origin(origin, callback) {
+      // allow same-origin/non-browser tools (no origin header) and whitelisted origins
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+
+// Generic API-wide rate limit as a safety net (login has its own stricter limit)
+app.use(
+  '/api',
+  rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
+
+app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
+app.use('/api/auth', authRoutes);
+app.use('/api/entries', entriesRoutes);
+app.use('/api/employees', employeesRoutes);
+app.use('/api/reports', reportsRoutes);
+
+// 404 handler
+app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
+
+// central error handler — never leak stack traces to clients
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ error: 'Origin not allowed.' });
+  }
+  res.status(500).json({ error: 'Internal server error.' });
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`WorkTrack API listening on port ${PORT}`));

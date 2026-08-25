@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WorkTrack — Enterprise</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <style>
+        /* ── reset & variables ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #FBF7EF; --card: #FFFFFF; --border: #E8E0CC; --ink: #2B2620; --ink-soft: #7A6F5C;
+            --amber: #D98C2B; --amber-deep: #A85F1C; --amber-soft: #F6E4C7;
+            --green: #4F8F63; --green-soft: #E4F0E7; --red: #C1585B; --red-soft: #F7E4E4;
+            --blue: #4C74A8; --blue-soft: #E3ECF5; --track: #EFE8D6; --shadow: 0 12px 32px rgba(60, 45, 10, 0.06);
+        }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh; }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+        .serif { font-family: 'Fraunces', serif; }
+        .hidden { display: none !important; }
+        input, select, button { font-family: inherit; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+            background: radial-gradient(circle at 30% 20%, #FFFDF8 0%, var(--bg) 60%); }
+        .auth-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 36px;
+            width: 100%; max-width: 380px; box-shadow: var(--shadow); }
+        .auth-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--amber-deep); font-size: 11px;
+            letter-spacing: .16em; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+        .auth-title { font-size: 26px; font-weight: 500; margin: 0 0 6px 0; }
+        .auth-sub { color: var(--ink-soft); font-size: 13px; margin: 0 0 28px 0; }
+        .field { margin-bottom: 16px; }
+        .field label { font-size: 12px; color: var(--ink-soft); display: block; margin-bottom: 6px; font-weight: 500; }
+        .field input { width: 100%; border: 1px solid var(--border); background: #FCFAF4; border-radius: 8px;
+            padding: 11px 13px; font-size: 14px; color: var(--ink); outline: none; }
+        .field input:focus { border-color: var(--amber); }
+        .auth-btn { width: 100%; background: var(--ink); color: #fff; border: none; border-radius: 8px; padding: 12px;
+            font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 6px; }
+        .auth-btn:hover { background: #1c1812; }
+        .auth-btn:disabled { opacity: .6; cursor: default; }
+        .auth-error { color: var(--red); font-size: 12px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+        .auth-hint { color: var(--ink-soft); font-size: 11px; margin-top: 22px; line-height: 1.5;
+            border-top: 1px dashed var(--border); padding-top: 16px; }
+
+        #app-screen { display: none; min-height: 100vh; flex-direction: column; }
+        header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex;
+            align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 9px; font-size: 19px; font-weight: 600; }
+        .brand-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--amber); }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .header-right .who { color: var(--ink-soft); font-size: 12px; }
+        .report-btn { background: var(--amber-deep); color: #fff; border: none; border-radius: 8px; padding: 8px 18px;
+            font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; transition: background .2s; }
+        .report-btn:hover { background: #8f4f16; }
+        .logout-btn { color: var(--ink-soft); border: 1px solid var(--border); background: transparent; font-size: 12px;
+            padding: 6px 14px; border-radius: 7px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+        .logout-btn:hover { background: var(--bg); }
+
+        main { flex: 1; padding: 28px; max-width: 960px; margin: 0 auto; width: 100%; }
+
+        .update-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; box-shadow: var(--shadow); }
+        .update-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+        .update-title { font-size: 21px; font-weight: 500; }
+        .update-date { color: var(--amber-deep); font-size: 12px; background: var(--amber-soft); padding: 5px 11px; border-radius: 20px; font-weight: 600; }
+        .update-note { color: var(--ink-soft); font-size: 12px; margin: 6px 0 26px 0; }
+        .field-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
+        .bullet-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .bullet-num { width: 22px; height: 22px; border-radius: 6px; background: var(--track); color: var(--ink-soft);
+            font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .bullet-row input[type=text] { flex: 1; border: 1px solid var(--border); border-radius: 8px; background: #FCFAF4;
+            padding: 10px 12px; font-size: 14px; color: var(--ink); outline: none; }
+        .bullet-row input[type=text]:focus { border-color: var(--amber); }
+        .icon-btn { background: none; border: none; cursor: pointer; color: var(--ink-soft); padding: 2px; display: flex; font-size: 15px; }
+        .icon-btn:hover { color: var(--red); }
+        .add-bullet { background: var(--amber-soft); border: none; color: var(--amber-deep); font-size: 12.5px; font-weight: 700;
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin: 2px 0 26px 32px; font-family: inherit;
+            padding: 8px 14px; border-radius: 8px; }
+        .add-bullet:hover { background: #F0D8AC; }
+        .attach-input { width: 100%; border: 1px solid var(--border); background: #FCFAF4; border-radius: 8px; padding: 11px 13px;
+            font-size: 14px; color: var(--ink); outline: none; margin-bottom: 6px; }
+        .attach-input:focus { border-color: var(--amber); }
+        .attach-note { color: var(--ink-soft); font-size: 11.5px; margin: 0 0 26px 0; }
+        .error-note { color: var(--red); font-size: 12.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 16px;
+            background: var(--red-soft); padding: 9px 12px; border-radius: 8px; }
+        .submit-btn { background: var(--amber-deep); color: #fff; border: none; border-radius: 9px; padding: 12px 24px;
+            font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
+        .submit-btn:hover { background: #8f4f16; }
+        .submit-btn:disabled { opacity: .6; cursor: default; }
+        .saved-msg { color: var(--green); font-size: 12.5px; font-weight: 600; margin-left: 12px; }
+
+        #report-overlay { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1000; overflow-y: auto; padding: 24px 28px 48px; }
+        #report-overlay.open { display: block; }
+        .report-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            margin-bottom: 24px; background: var(--card); padding: 16px 24px; border-radius: 14px; border: 1px solid var(--border); }
+        .report-header-left { display: flex; align-items: center; gap: 14px; }
+        .report-header-left h2 { font-size: 20px; font-weight: 500; }
+        .report-header-left .badge { font-size: 11px; background: var(--amber-soft); color: var(--amber-deep); padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+        .report-close-btn { background: var(--border); border: none; border-radius: 8px; padding: 8px 18px; font-size: 13px;
+            font-weight: 600; cursor: pointer; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+        .report-close-btn:hover { background: #d5cdb8; }
+        .report-layout { display: grid; grid-template-columns: 260px 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 800px) { .report-layout { grid-template-columns: 1fr; } }
+        .report-sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+            display: flex; flex-direction: column; gap: 10px; }
+        .report-sidebar .filter-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+        .report-sidebar select { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; background: #FCFAF4; outline: none; cursor: pointer; }
+        .report-sidebar select:focus { border-color: var(--amber); }
+        .emp-list { display: flex; flex-direction: column; gap: 3px; max-height: 500px; overflow-y: auto; margin-top: 4px; }
+        .emp-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 8px;
+            cursor: pointer; border: 1px solid transparent; transition: background .15s; }
+        .emp-item:hover { background: var(--bg); }
+        .emp-item.active { background: var(--amber-soft); border-color: var(--amber); }
+        .emp-item-name { font-size: 13px; font-weight: 600; }
+        .emp-item-id { font-size: 10px; color: var(--ink-soft); display: block; }
+        .emp-item .score-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; }
+        .score-strong { background: var(--green-soft); color: var(--green); }
+        .score-steady { background: var(--amber-soft); color: var(--amber-deep); }
+        .score-low { background: var(--red-soft); color: var(--red); }
+        .report-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+        .report-panel .empty-note { color: var(--ink-soft); font-size: 14px; text-align: center; padding: 40px 0; }
+        .panel-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+        .panel-name { font-size: 22px; font-weight: 500; }
+        .panel-id { color: var(--ink-soft); font-size: 12px; }
+        .panel-score { text-align: right; }
+        .panel-score .num { font-size: 34px; font-weight: 700; line-height: 1; }
+        .panel-score .label { font-size: 12px; font-weight: 700; margin-top: 4px; display: inline-block; padding: 3px 10px; border-radius: 20px; }
+        .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 16px;
+            background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+        .filter-row label { font-size: 12px; font-weight: 600; color: var(--ink-soft); display: flex; align-items: center; gap: 4px; }
+        .filter-row input[type="date"] { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; background: #FCFAF4; outline: none; color: var(--ink); }
+        .filter-row input[type="date"]:focus { border-color: var(--amber); }
+        .filter-row .clear-btn { background: none; border: none; color: var(--ink-soft); font-size: 12px; cursor: pointer; text-decoration: underline; }
+        .filter-row .clear-btn:hover { color: var(--red); }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        @media (max-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat-tile { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+        .stat-tile .val { font-size: 19px; font-weight: 700; }
+        .stat-tile .key { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+        .section-title { font-size: 13px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 12px 0; }
+        .history-list { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+        .history-item { background: var(--bg); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); }
+        .history-item .h-date { font-size: 12px; font-weight: 600; color: var(--amber-deep); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .history-item .h-date .h-attach { font-weight: 400; color: var(--blue); font-size: 11px; }
+        .history-item .h-bullets { list-style: none; padding: 0; margin: 0; }
+        .history-item .h-bullets li { font-size: 13.5px; padding: 3px 0 3px 20px; position: relative; line-height: 1.5; }
+        .history-item .h-bullets li::before { content: "·"; position: absolute; left: 4px; color: var(--amber); font-weight: 700; }
+        .no-entries { color: var(--ink-soft); font-size: 13px; padding: 20px 0; text-align: center; background: var(--bg); border-radius: 10px; }
+
+        #modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(43, 38, 32, .5); backdrop-filter: blur(4px);
+            z-index: 2000; align-items: center; justify-content: center; padding: 24px; }
+        #modal-backdrop.open { display: flex; }
+        .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; width: 100%;
+            max-width: 360px; box-shadow: 0 20px 48px rgba(60, 45, 10, .15); }
+        .modal-card h3 { font-size: 20px; font-weight: 500; margin: 0 0 6px 0; }
+        .modal-card p { color: var(--ink-soft); font-size: 13px; margin: 0 0 20px 0; }
+        .modal-card .actions { display: flex; gap: 10px; margin-top: 6px; }
+        .modal-card .actions button { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+        .modal-card .actions .btn-primary { background: var(--amber-deep); color: #fff; flex: 1; }
+        .modal-card .actions .btn-primary:hover { background: #8f4f16; }
+        .modal-card .actions .btn-secondary { background: var(--border); color: var(--ink); }
+        .modal-card .actions .btn-secondary:hover { background: #d5cdb8; }
+
+        @media (max-width: 600px) {
+            header { padding: 10px 16px; }
+            main { padding: 16px; }
+            .update-card { padding: 20px; }
+            .report-header { padding: 12px 16px; }
+            #report-overlay { padding: 12px 14px 32px; }
+            .report-panel { padding: 18px; }
+            .header-right .who { display: none; }
+            .filter-row { flex-direction: column; align-items: stretch; }
+            .filter-row label { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ════════════════════ AUTH SCREEN ════════════════════ -->
+    <div id="auth-screen">
+        <div class="auth-card">
+            <div class="auth-eyebrow">🔒 WorkTrack Login</div>
+            <h1 class="auth-title serif">Sign in</h1>
+            <p class="auth-sub">Enter your work email and password to log your work.</p>
+            <div class="field">
+                <label>Work email</label>
+                <input type="email" id="login-email" placeholder="you@yourcompany.com" autocomplete="username" />
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input type="password" id="login-pass" placeholder="••••••••••" autocomplete="current-password" />
+            </div>
+            <button class="auth-btn" id="login-btn">Sign in</button>
+            <div class="auth-error hidden" id="login-error"></div>
+            <p class="auth-hint">First time signing in? Use the temporary password your admin sent you — you'll be asked to set a new one.</p>
+        </div>
+    </div>
+
+    <!-- ════════════════════ APP SCREEN ════════════════════ -->
+    <div id="app-screen">
+        <header>
+            <div class="brand"><span class="brand-dot"></span> WorkTrack</div>
+            <div class="header-right">
+                <span class="who mono" id="who-label"></span>
+                <button class="report-btn hidden" id="report-open-btn">📊 Progress Report</button>
+                <button class="logout-btn" id="logout-btn">Log out</button>
+            </div>
+        </header>
+
+        <main>
+            <div id="update-view">
+                <div class="update-card">
+                    <div class="update-head">
+                        <div class="update-title serif" id="update-title">Work update</div>
+                        <div class="update-date mono" id="update-date"></div>
+                    </div>
+                    <p class="update-note" id="update-note">Log what you worked on today.</p>
+
+                    <label class="field-label">📋 What did you work on today?</label>
+                    <div id="bullet-list"></div>
+                    <button class="add-bullet" id="add-bullet-btn">＋ Add another point</button>
+
+                    <label class="field-label">📎 Related file (optional)</label>
+                    <input type="text" class="attach-input" id="attachment-input" placeholder="File name or link, e.g. Q3-vendor-summary.pdf" />
+                    <p class="attach-note">Store a reference — connect real uploads to cloud storage (S3 / GCS) separately.</p>
+
+                    <div class="error-note hidden" id="submit-error"></div>
+                    <button class="submit-btn" id="submit-btn">Submit today's update</button>
+                    <span class="saved-msg hidden" id="saved-msg">✓ Saved.</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ════════════════════ FORCE PASSWORD RESET MODAL ════════════════════ -->
+    <div id="modal-backdrop">
+        <div class="modal-card" id="reset-pw-card">
+            <h3 class="serif">🔑 Set a new password</h3>
+            <p>For your security, set your own password before continuing.</p>
+            <div class="field">
+                <label>Current (temporary) password</label>
+                <input type="password" id="reset-current" />
+            </div>
+            <div class="field">
+                <label>New password (10+ characters)</label>
+                <input type="password" id="reset-new" />
+            </div>
+            <div class="auth-error hidden" id="reset-error"></div>
+            <div class="actions">
+                <button class="btn-primary" id="reset-submit" style="width:100%;">Set password &amp; continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════ REPORT OVERLAY ════════════════════ -->
+    <div id="report-overlay">
+        <div class="report-header">
+            <div class="report-header-left">
+                <h2 class="serif">📊 Progress Report</h2>
+                <span class="badge">Manager view</span>
+                <span style="font-size:12px;color:var(--ink-soft);" id="report-total-employees"></span>
+            </div>
+            <button class="report-close-btn" id="report-close-btn">✕ Close</button>
+        </div>
+        <div class="report-layout">
+            <div class="report-sidebar">
+                <label class="filter-label">Department</label>
+                <select id="report-dept-filter"><option value="all">All Departments</option></select>
+                <label class="filter-label" style="margin-top:6px;">Employees</label>
+                <div class="emp-list" id="report-emp-list"></div>
+            </div>
+            <div class="report-panel" id="report-panel">
+                <div class="empty-note">Select an employee to view their full work history.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = window.WORKTRACK_API_BASE;
+        let TOKEN = sessionStorage.getItem('wt_token') || null;
+        let CURRENT_USER = null;
+
+        // ─── fetch helper ───
+        async function api(path, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+            if (TOKEN) headers.Authorization = 'Bearer ' + TOKEN;
+            const res = await fetch(API + path, { ...options, headers });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Request failed (' + res.status + ')');
+            return data;
+        }
+
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function todayISO() { return new Date().toISOString().slice(0, 10); }
+        function formatDate(iso) {
+            const d = new Date(iso + 'T00:00:00');
+            return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
+        }
+
+        // ════════════════════ AUTH ════════════════════
+        document.getElementById('login-btn').onclick = doLogin;
+        document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+        async function doLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-pass').value;
+            const err = document.getElementById('login-error');
+            err.classList.add('hidden');
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true; btn.textContent = 'Signing in…';
+            try {
+                const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+                TOKEN = data.token;
+                sessionStorage.setItem('wt_token', TOKEN);
+                CURRENT_USER = data.user;
+                if (CURRENT_USER.mustResetPassword) {
+                    document.getElementById('modal-backdrop').classList.add('open');
+                } else {
+                    enterApp();
+                }
+            } catch (e) {
+                err.textContent = '⚠ ' + e.message;
+                err.classList.remove('hidden');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Sign in';
+            }
+        }
+
+        document.getElementById('reset-submit').onclick = async () => {
+            const currentPassword = document.getElementById('reset-current').value;
+            const newPassword = document.getElementById('reset-new').value;
+            const err = document.getElementById('reset-error');
+            err.classList.add('hidden');
+            try {
+                await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+                document.getElementById('modal-backdrop').classList.remove('open');
+                CURRENT_USER.mustResetPassword = false;
+                enterApp();
+            } catch (e) {
+                err.textContent = '⚠ ' + e.message;
+                err.classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('logout-btn').onclick = () => {
+            TOKEN = null; CURRENT_USER = null;
+            sessionStorage.removeItem('wt_token');
+            document.getElementById('app-screen').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('report-overlay').classList.remove('open');
+        };
+
+        async function enterApp() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            document.getElementById('who-label').textContent = CURRENT_USER.employeeCode + ' · ' + CURRENT_USER.name;
+            document.getElementById('update-title').textContent = CURRENT_USER.name + "'s update";
+            document.getElementById('update-note').textContent =
+                CURRENT_USER.employeeCode + ' · ' + CURRENT_USER.department + ' · ' + CURRENT_USER.jobTitle + ' — date is stamped automatically.';
+            document.getElementById('update-date').textContent = formatDate(todayISO());
+            if (['manager', 'admin'].includes(CURRENT_USER.accessRole)) {
+                document.getElementById('report-open-btn').classList.remove('hidden');
+            }
+            bullets = [''];
+            renderBullets();
+        }
+
+        // try to resume a session on page load
+        (async function tryResume() {
+            if (!TOKEN) return;
+            try {
+                const data = await api('/api/auth/me');
+                CURRENT_USER = {
+                    id: data.user.id, employeeCode: data.user.employee_code, name: data.user.name,
+                    email: data.user.email, department: data.user.department, jobTitle: data.user.job_title,
+                    accessRole: data.user.access_role, mustResetPassword: data.user.must_reset_pw,
+                };
+                if (CURRENT_USER.mustResetPassword) {
+                    document.getElementById('modal-backdrop').classList.add('open');
+                } else {
+                    enterApp();
+                }
+            } catch (e) {
+                TOKEN = null; sessionStorage.removeItem('wt_token');
+            }
+        })();
+
+        // ════════════════════ WORK UPDATE ════════════════════
+        let bullets = [''];
+
+        function renderBullets() {
+            const list = document.getElementById('bullet-list');
+            list.innerHTML = '';
+            bullets.forEach((val, i) => {
+                const row = document.createElement('div');
+                row.className = 'bullet-row';
+                row.innerHTML = `
+                    <span class="bullet-num">${i+1}</span>
+                    <input type="text" placeholder="e.g. Reviewed vendor contract drafts" value="${escapeHtml(val)}" data-idx="${i}" />
+                    ${bullets.length > 1 ? '<button class="icon-btn" data-remove="'+i+'">✕</button>' : '<span style="width:19px;"></span>'}
+                `;
+                list.appendChild(row);
+            });
+            list.querySelectorAll('input').forEach(inp => {
+                inp.addEventListener('input', e => { bullets[+e.target.dataset.idx] = e.target.value; });
+            });
+            list.querySelectorAll('[data-remove]').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    bullets = bullets.filter((_, i) => i !== +e.target.dataset.remove);
+                    renderBullets();
+                });
+            });
+        }
+
+        document.getElementById('add-bullet-btn').onclick = () => { bullets.push(''); renderBullets(); };
+
+        document.getElementById('submit-btn').onclick = async () => {
+            const errEl = document.getElementById('submit-error');
+            const clean = bullets.map(b => b.trim()).filter(Boolean);
+            if (clean.length === 0) {
+                errEl.textContent = '⚠ Add at least one update point before submitting.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            errEl.classList.add('hidden');
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.textContent = 'Submitting…';
+            try {
+                await api('/api/entries', {
+                    method: 'POST',
+                    body: JSON.stringify({ bullets: clean, attachmentNote: document.getElementById('attachment-input').value.trim() }),
+                });
+                bullets = [''];
+                document.getElementById('attachment-input').value = '';
+                renderBullets();
+                const saved = document.getElementById('saved-msg');
+                saved.classList.remove('hidden');
+                setTimeout(() => saved.classList.add('hidden'), 3000);
+            } catch (e) {
+                errEl.textContent = '⚠ ' + e.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false; btn.textContent = "Submit today's update";
+            }
+        };
+
+        // ════════════════════ PROGRESS REPORT (manager/admin only) ════════════════════
+        const reportOverlay = document.getElementById('report-overlay');
+        let reportSelectedEmployee = null;
+        let reportDepartments = [];
+
+        document.getElementById('report-open-btn').onclick = async () => {
+            reportOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            try {
+                const { employees } = await api('/api/employees');
+                reportDepartments = [...new Set(employees.map(e => e.department))].sort();
+                populateReportFilters();
+                await renderReportEmployeeList();
+                renderReportDetail();
+            } catch (e) {
+                document.getElementById('report-panel').innerHTML = '<div class="empty-note">⚠ ' + escapeHtml(e.message) + '</div>';
+            }
+        };
+
+        document.getElementById('report-close-btn').onclick = closeReport;
+        reportOverlay.addEventListener('click', e => { if (e.target === reportOverlay) closeReport(); });
+        function closeReport() { reportOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+
+        function populateReportFilters() {
+            const sel = document.getElementById('report-dept-filter');
+            sel.innerHTML = '<option value="all">All Departments</option>';
+            reportDepartments.forEach(d => {
+                const opt = document.createElement('option'); opt.value = d; opt.textContent = d; sel.appendChild(opt);
+            });
+            sel.value = 'all';
+            sel.onchange = async () => { reportSelectedEmployee = null; await renderReportEmployeeList(); renderReportDetail(); };
+        }
+
+        async function renderReportEmployeeList() {
+            const container = document.getElementById('report-emp-list');
+            const dept = document.getElementById('report-dept-filter').value;
+            const { employees } = await api('/api/reports/employees' + (dept !== 'all' ? '?department=' + encodeURIComponent(dept) : ''));
+            container.innerHTML = '';
+            if (employees.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink-soft);font-size:13px;">No employees in this department.</div>';
+                document.getElementById('report-total-employees').textContent = '0 employees';
+                return;
+            }
+            employees.forEach(e => {
+                const div = document.createElement('div');
+                div.className = 'emp-item' + (reportSelectedEmployee === e.id ? ' active' : '');
+                div.innerHTML = `
+                    <span><span class="emp-item-name">${escapeHtml(e.name)}</span><span class="emp-item-id">${e.employee_code} · ${escapeHtml(e.job_title)}</span></span>
+                    <span class="score-pill ${e.label.cls}">${e.score}</span>
+                `;
+                div.onclick = () => { reportSelectedEmployee = e.id; renderReportEmployeeList(); renderReportDetail(); };
+                container.appendChild(div);
+            });
+            document.getElementById('report-total-employees').textContent = employees.length + ' employees';
+        }
+
+        async function renderReportDetail() {
+            const panel = document.getElementById('report-panel');
+            if (!reportSelectedEmployee) {
+                panel.innerHTML = '<div class="empty-note">Select an employee from the list to view their full history.</div>';
+                return;
+            }
+            const fromVal = document.getElementById('report-date-from')?.value || '';
+            const toVal = document.getElementById('report-date-to')?.value || '';
+            let qs = '';
+            if (fromVal) qs += '&from=' + fromVal;
+            if (toVal) qs += '&to=' + toVal;
+
+            let data;
+            try {
+                data = await api('/api/reports/employees/' + reportSelectedEmployee + (qs ? '?' + qs.slice(1) : ''));
+            } catch (e) {
+                panel.innerHTML = '<div class="empty-note">⚠ ' + escapeHtml(e.message) + '</div>';
+                return;
+            }
+            const { employee: emp, stats, history } = data;
+
+            const historyHtml = history.length === 0 ?
+                '<div class="no-entries">No entries found for the selected period.</div>' :
+                '<div class="history-list">' + history.map(e => `
+                    <div class="history-item">
+                        <div class="h-date">
+                            ${formatDate(e.entry_date)}
+                            ${e.attachment_note ? '<span class="h-attach">📎 ' + escapeHtml(e.attachment_note) + '</span>' : ''}
+                        </div>
+                        <ul class="h-bullets">${(e.bullets || []).map(b => '<li>' + escapeHtml(b) + '</li>').join('')}</ul>
+                    </div>
+                `).join('') + '</div>';
+
+            panel.innerHTML = `
+                <div class="panel-head">
+                    <div>
+                        <div class="panel-name serif">${escapeHtml(emp.name)}</div>
+                        <div class="panel-id mono">${emp.employee_code} · ${escapeHtml(emp.department)} · ${escapeHtml(emp.job_title)}</div>
+                    </div>
+                    <div class="panel-score">
+                        <div class="num">${stats.score}<span style="font-size:16px;color:var(--ink-soft);">/100</span></div>
+                        <span class="label ${stats.label.cls}">${stats.label.text}</span>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <label>📅 From <input type="date" id="report-date-from" value="${fromVal}" /></label>
+                    <label>To <input type="date" id="report-date-to" value="${toVal}" /></label>
+                    <button class="clear-btn" id="report-clear-dates">Clear</button>
+                    <span style="font-size:11px;color:var(--ink-soft);margin-left:auto;">${history.length} entries</span>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-tile"><div class="val">${stats.submittedDays}/${stats.windowDays}</div><div class="key">Days logged (last ${stats.windowDays}d)</div></div>
+                    <div class="stat-tile"><div class="val">${stats.avgBulletsPerEntry}</div><div class="key">Avg points / entry</div></div>
+                    <div class="stat-tile"><div class="val">${stats.avgWords}</div><div class="key">Avg words / point</div></div>
+                    <div class="stat-tile"><div class="val">${stats.attachRatePct}%</div><div class="key">Entries with evidence</div></div>
+                </div>
+                <div class="section-title">📜 Full work history</div>
+                ${historyHtml}
+                <p style="font-size:11.5px;color:var(--ink-soft);margin-top:20px;padding-top:14px;border-top:1px dashed var(--border);line-height:1.6;">
+                    Engagement score = 40% consistency + 30% detail (avg words per point) + 15% volume (points per entry) + 15% supporting evidence.
+                </p>
+            `;
+            document.getElementById('report-date-from').onchange = renderReportDetail;
+            document.getElementById('report-date-to').onchange = renderReportDetail;
+            document.getElementById('report-clear-dates').onclick = () => {
+                document.getElementById('report-date-from').value = '';
+                document.getElementById('report-date-to').value = '';
+                renderReportDetail();
+            };
+        }
+    </script>
+</body>
+</html>
