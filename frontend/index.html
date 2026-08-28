@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rush ERP</title>
+    <title>Accesco ERP System</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#C10058" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,8 +300,8 @@
     <!-- ════════ AUTH ════════ -->
     <div id="auth-screen">
         <div class="auth-card">
-            <div class="auth-logo"><span class="brand-logo"><img src="logo.png" alt="Rush ERP" onerror="this.onerror=null;this.src='logo.svg'"></span></div>
-            <div class="auth-eyebrow" style="justify-content:center;">Rush ERP</div>
+            <div class="auth-logo"><span class="brand-logo"><img src="logo.png" alt="Accesco ERP System" onerror="this.onerror=null;this.src='logo.svg'"></span></div>
+            <div class="auth-eyebrow" style="justify-content:center;">Accesco ERP System</div>
             <h1 class="auth-title serif" style="text-align:center;">Sign in</h1>
             <p class="auth-sub">Enter your email (or name) and password to access the workspace.</p>
             <div class="field">
@@ -322,7 +322,7 @@
     <div id="app-screen">
         <div class="layout">
             <aside class="sidebar" id="sidebar">
-                <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Rush ERP</div>
+                <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Accesco ERP</div>
                 <nav class="sb-nav">
                     <div class="sb-link active" data-view="home"><span class="ico">🏠</span> Home</div>
                     <div class="sb-link hidden" data-view="users" id="nav-users"><span class="ico">👥</span> Users</div>
@@ -701,7 +701,8 @@
                         ${['open', 'paused', 'closed'].map(s =>
                             `<button class="${p.status === s ? 'active ' + s : ''}" data-status="${s}" ${canManage ? '' : 'disabled'}>${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}
                     </div>
-                    ${p.description ? `<p style="font-size:14px;line-height:1.6;color:var(--ink);margin-bottom:20px;">${esc(p.description)}</p>` : ''}
+                    <div class="section-title" style="margin-bottom:8px;">Description</div>
+                    <p style="font-size:14px;line-height:1.6;color:${p.description ? 'var(--ink)' : 'var(--ink-soft)'};margin-bottom:20px;">${p.description ? esc(p.description) : 'No description provided.'}</p>
                     <div class="pd-meta-grid">
                         <div class="cell"><div class="k">Project Manager</div><div class="v">${esc(p.manager_name)}</div></div>
                         <div class="cell"><div class="k">Team Size</div><div class="v">${p.member_count} member${p.member_count == 1 ? '' : 's'}</div></div>
@@ -914,16 +915,6 @@
             const dir = EMPLOYEES.find(x => x.id === id) || {};
             const email = data.employee.email || dir.email || '—';
             const canAssign = canManageUsers() && isInternEmp(emp);
-            const assignHtml = canAssign ? `
-                <div class="assign-box" id="assign-box">
-                    <div class="ab-head"><b>📌 Assign a task</b>
-                        <input type="date" id="assign-date" value="${todayISO()}" style="width:auto;margin:0;"></div>
-                    <input type="text" id="assign-title" placeholder="Task title (e.g. Draft 3 LinkedIn posts)">
-                    <textarea id="assign-details" placeholder="Details (optional)"></textarea>
-                    <button class="btn btn-primary" id="assign-btn" style="width:100%;justify-content:center;">Assign task</button>
-                    <div class="form-error hidden" id="assign-err" style="margin-top:8px;"></div>
-                    <div class="assigned-list" id="assigned-list" style="margin-top:12px;"></div>
-                </div>` : '';
             const historyHtml = !history.length ?
                 '<div class="no-entries">No work updates submitted yet.</div>' :
                 '<div class="history-list">' + history.map(e => `
@@ -938,9 +929,12 @@
                         <div class="panel-name serif">${esc(emp.name)}</div>
                         <div class="panel-id mono">${esc(emp.employee_code)} · ${esc(emp.department)} · ${esc(emp.job_title)}</div>
                     </div>
-                    <div class="panel-score">
-                        <div class="num">${stats.score}<span style="font-size:15px;color:var(--ink-soft);">/100</span></div>
-                        <span class="label ${stats.label.cls}">${stats.label.text}</span>
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        ${canAssign ? '<button class="btn btn-primary" id="open-assign">📌 Assign task</button>' : ''}
+                        <div class="panel-score">
+                            <div class="num">${stats.score}<span style="font-size:15px;color:var(--ink-soft);">/100</span></div>
+                            <span class="label ${stats.label.cls}">${stats.label.text}</span>
+                        </div>
                     </div>
                 </div>
                 <div class="info-grid">
@@ -949,7 +943,6 @@
                     <div class="cell"><div class="k">Role</div><div class="v">${esc(emp.job_title)}</div></div>
                     <div class="cell"><div class="k">Employee ID</div><div class="v">${esc(emp.employee_code)}</div></div>
                 </div>
-                ${assignHtml}
                 <div class="stat-grid">
                     <div class="stat-tile"><div class="val">${stats.submittedDays}/${stats.windowDays}</div><div class="key">Days logged (30d)</div></div>
                     <div class="stat-tile"><div class="val">${stats.avgBulletsPerEntry}</div><div class="key">Avg points / entry</div></div>
@@ -958,7 +951,41 @@
                 </div>
                 <div class="section-title" style="margin-bottom:12px;">📜 Work Updates</div>
                 ${historyHtml}`;
-            if (canAssign) wireAssignBox(emp);
+            if (canAssign) {
+                document.getElementById('open-assign').onclick = () => openAssignModal(emp);
+            }
+        }
+
+        // Task-assignment snippet, opened from the "Assign task" button on an
+        // intern's report card (kept out of the report body to reduce clutter).
+        function openAssignModal(emp) {
+            openModal(`
+                <div class="modal-head">
+                    <div>
+                        <h3 class="serif">📌 Assign a task</h3>
+                        <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(emp.name)} · ${esc(emp.job_title)}</div>
+                    </div>
+                    <button class="x" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="field">
+                        <label>Day</label>
+                        <input type="date" id="assign-date" value="${todayISO()}">
+                    </div>
+                    <div class="field">
+                        <label>Task title</label>
+                        <input type="text" id="assign-title" placeholder="e.g. Draft 3 LinkedIn posts">
+                    </div>
+                    <div class="field">
+                        <label>Details (optional)</label>
+                        <textarea class="field-ta" id="assign-details" placeholder="Any specifics for this task"></textarea>
+                    </div>
+                    <button class="btn btn-primary" id="assign-btn" style="width:100%;justify-content:center;">Assign task</button>
+                    <div class="form-error hidden" id="assign-err" style="margin-top:10px;"></div>
+                    <div class="section-title" style="margin:20px 0 10px;">Tasks for this day</div>
+                    <div class="assigned-list" id="assigned-list"></div>
+                </div>`);
+            wireAssignBox(emp);
         }
 
         function wireAssignBox(emp) {
