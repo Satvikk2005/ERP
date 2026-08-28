@@ -2,4 +2,4 @@
 // DIFFERENT domains (e.g. frontend on Vercel, backend on Render) — this is
 // the free-tier deployment path. Leave it as '' (same-origin) only if
 // Nginx is reverse-proxying both from one domain, as in the Docker/VPS setup.
-window.WORKTRACK_API_BASE = window.WORKTRACK_API_BASE || 'https://YOUR-BACKEND.onrender.com';
+window.WORKTRACK_API_BASE = window.WORKTRACK_API_BASE || 'https://erp-lcd5.onrender.com';
