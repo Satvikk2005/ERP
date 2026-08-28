@@ -324,8 +324,8 @@
             <aside class="sidebar" id="sidebar">
                 <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Accesco ERP</div>
                 <nav class="sb-nav">
-                    <div class="sb-link active" data-view="home"><span class="ico">🏠</span> Home</div>
-                    <div class="sb-link hidden" data-view="users" id="nav-users"><span class="ico">👥</span> Users</div>
+                    <div class="sb-link active" data-view="home"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> Home</div>
+                    <div class="sb-link hidden" data-view="users" id="nav-users"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.6-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.2A3 3 0 0 1 16 11"/><path d="M15.5 15c2.6.3 4.5 2.3 4.5 5"/></svg> Users</div>
                 </nav>
                 <div class="sb-foot">
                     <div class="sb-user"><b id="sb-name"></b><span id="sb-role"></span></div>
@@ -343,9 +343,9 @@
                         </div>
                     </div>
                     <div class="topbar-actions">
-                        <button class="btn btn-ghost tasks-btn hidden" id="my-tasks-btn">✅ My Tasks<span class="task-badge hidden" id="task-badge">0</span></button>
-                        <button class="btn btn-ghost" id="work-update-btn">📝 Work Update</button>
-                        <button class="btn btn-primary" id="new-project-btn">＋ New Project</button>
+                        <button class="btn btn-ghost tasks-btn hidden" id="my-tasks-btn">My Tasks<span class="task-badge hidden" id="task-badge">0</span></button>
+                        <button class="btn btn-ghost" id="work-update-btn">Work Update</button>
+                        <button class="btn btn-primary" id="new-project-btn">+ New Project</button>
                     </div>
                     <div class="task-pop hidden" id="task-pop"></div>
                 </div>
@@ -367,11 +367,12 @@
                 <div class="page hidden" id="view-users">
                     <div class="users-layout">
                         <div class="users-side">
+                            <input type="text" id="users-search" placeholder="Search by name..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:#FCFAF4;outline:none;margin-bottom:8px;" />
                             <select id="users-dept-filter"><option value="all">All Departments</option></select>
                             <div class="u-list" id="u-list"></div>
                         </div>
                         <div class="users-panel" id="users-panel">
-                            <div class="empty-state"><div class="big">👥</div>Select an employee to view their profile and work updates.</div>
+                            <div class="empty-state"><div class="big"></div>Select an employee to view their profile and work updates.</div>
                         </div>
                     </div>
                 </div>
@@ -406,6 +407,13 @@
             return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
         }
         function initials(name) { return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+        function fmtDay(iso) { return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
+        function timelineText(p) {
+            if (p.start_date && p.end_date) return fmtDay(p.start_date) + '  →  ' + fmtDay(p.end_date);
+            if (p.end_date) return 'Finish by ' + fmtDay(p.end_date);
+            if (p.start_date) return 'Started ' + fmtDay(p.start_date);
+            return 'Not set';
+        }
         function isAdmin() { return CURRENT_USER && CURRENT_USER.accessRole === 'admin'; }
         function canManageUsers() { return CURRENT_USER && ['manager', 'admin'].includes(CURRENT_USER.accessRole); }
         function isInternEmp(emp) { return /intern/i.test((emp && emp.job_title) || ''); }
@@ -429,7 +437,7 @@
                 if (CURRENT_USER.mustResetPassword) openResetModal();
                 else await enterApp();
             } catch (e) {
-                err.textContent = '⚠ ' + e.message; err.classList.remove('hidden');
+                err.textContent = '' + e.message; err.classList.remove('hidden');
             } finally { btn.disabled = false; btn.textContent = 'Sign in'; }
         }
 
@@ -503,6 +511,7 @@
         }
         document.getElementById('dept-filter').onchange = loadDashboard;
         document.getElementById('users-dept-filter').onchange = loadUsers;
+        document.getElementById('users-search').oninput = renderUsersList;
 
         // ════════ DASHBOARD ════════
         let currentStatusFilter = 'all';
@@ -516,7 +525,7 @@
                 projects = (await api('/api/projects' + qs)).projects;
             } catch (e) {
                 document.getElementById('proj-container').innerHTML =
-                    `<div class="empty-state"><div class="big">⚠</div>${esc(e.message)}</div>`;
+                    `<div class="empty-state"><div class="big"></div>${esc(e.message)}</div>`;
             }
             renderStats(stats);
             renderProjects(projects);
@@ -546,8 +555,8 @@
             let list = projects;
             if (currentStatusFilter !== 'all') list = projects.filter(p => p.status === currentStatusFilter);
             if (!list.length) {
-                container.innerHTML = `<div class="empty-state"><div class="big">📁</div>
-                    No projects yet. Click <b>＋ New Project</b> to create the first one.</div>`;
+                container.innerHTML = `<div class="empty-state"><div class="big"></div>
+                    No projects yet. Click <b>+ New Project</b> to create the first one.</div>`;
                 return;
             }
             container.innerHTML = '<div class="proj-grid">' + list.map(p => `
@@ -559,7 +568,8 @@
                     <div class="desc">${p.description ? esc(p.description) : '<span style="color:var(--ink-soft)">No description.</span>'}</div>
                     <div class="meta">
                         <span class="chip dept">${esc(p.department)}</span>
-                        <span class="chip">👥 ${p.member_count} member${p.member_count == 1 ? '' : 's'}</span>
+                        <span class="chip">${p.member_count} member${p.member_count == 1 ? '' : 's'}</span>
+                        ${p.end_date ? '<span class="chip">Due ' + fmtDay(p.end_date) + '</span>' : ''}
                     </div>
                     <div class="foot">
                         <span class="avatar">${initials(p.manager_name)}</span>
@@ -584,7 +594,7 @@
 
         function openResetModal() {
             openModal(`
-                <div class="modal-head"><h3 class="serif">🔑 Set a new password</h3></div>
+                <div class="modal-head"><h3 class="serif">Set a new password</h3></div>
                 <div class="modal-body">
                     <p style="color:var(--ink-soft);font-size:13px;margin-bottom:18px;">For your security, set your own password before continuing.</p>
                     <div class="field"><label>Current (temporary) password</label><input type="password" id="rc" /></div>
@@ -598,7 +608,7 @@
                     await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({
                         currentPassword: document.getElementById('rc').value, newPassword: document.getElementById('rn').value }) });
                     CURRENT_USER.mustResetPassword = false; closeModal(); await enterApp();
-                } catch (e) { err.textContent = '⚠ ' + e.message; err.classList.remove('hidden'); }
+                } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
             };
         }
 
@@ -611,7 +621,7 @@
             const deptOptions = DEPARTMENTS.map(d =>
                 `<option value="${esc(d)}" ${d === CURRENT_USER.department ? 'selected' : ''}>${esc(d)}</option>`).join('');
             openModal(`
-                <div class="modal-head"><h3 class="serif">＋ New Project</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-head"><h3 class="serif">+ New Project</h3><button class="x" onclick="closeModal()">✕</button></div>
                 <div class="modal-body">
                     <div class="field"><label>Project name</label><input type="text" id="np-name" placeholder="e.g. Q3 Brand Refresh" /></div>
                     <div class="field"><label>Description</label><textarea class="field-ta" id="np-desc" placeholder="What is this project about?"></textarea></div>
@@ -620,6 +630,10 @@
                         <div class="field"><label>Project manager</label>
                             <div class="readonly-box"><span class="avatar">${initials(CURRENT_USER.name)}</span> ${esc(CURRENT_USER.name)}</div>
                         </div>
+                    </div>
+                    <div class="row2">
+                        <div class="field"><label>Start date</label><input type="date" id="np-start" /></div>
+                        <div class="field"><label>Target finish date</label><input type="date" id="np-end" /></div>
                     </div>
                     <div class="field">
                         <label>Team members</label>
@@ -663,15 +677,17 @@
         async function createProject() {
             const name = document.getElementById('np-name').value.trim();
             const err = document.getElementById('np-err'); err.classList.add('hidden');
-            if (!name) { err.textContent = '⚠ Project name is required.'; err.classList.remove('hidden'); return; }
+            if (!name) { err.textContent = 'Project name is required.'; err.classList.remove('hidden'); return; }
             const btn = document.getElementById('np-create'); btn.disabled = true; btn.textContent = 'Creating…';
             try {
                 await api('/api/projects', { method: 'POST', body: JSON.stringify({
                     name, description: document.getElementById('np-desc').value.trim(),
-                    department: document.getElementById('np-dept').value, memberIds: [...selectedMembers] }) });
+                    department: document.getElementById('np-dept').value, memberIds: [...selectedMembers],
+                    startDate: document.getElementById('np-start').value || null,
+                    endDate: document.getElementById('np-end').value || null }) });
                 closeModal(); switchView('home'); currentStatusFilter = 'all'; await loadDashboard();
             } catch (e) {
-                err.textContent = '⚠ ' + e.message; err.classList.remove('hidden');
+                err.textContent = '' + e.message; err.classList.remove('hidden');
                 btn.disabled = false; btn.textContent = 'Create Project';
             }
         }
@@ -681,7 +697,7 @@
             openModal('<div class="modal-body"><p style="color:var(--ink-soft)">Loading…</p></div>', true);
             let project;
             try { project = (await api('/api/projects/' + id)).project; }
-            catch (e) { openModal(`<div class="modal-body"><p class="form-error">⚠ ${esc(e.message)}</p></div>`, true); return; }
+            catch (e) { openModal(`<div class="modal-body"><p class="form-error">${esc(e.message)}</p></div>`, true); return; }
             renderProjectDetail(project);
         }
 
@@ -706,6 +722,7 @@
                     <div class="pd-meta-grid">
                         <div class="cell"><div class="k">Project Manager</div><div class="v">${esc(p.manager_name)}</div></div>
                         <div class="cell"><div class="k">Team Size</div><div class="v">${p.member_count} member${p.member_count == 1 ? '' : 's'}</div></div>
+                        <div class="cell" style="grid-column:1/-1;"><div class="k">Timeline</div><div class="v">${timelineText(p)}</div></div>
                     </div>
                     <div class="section-title" style="margin-bottom:10px;">Team Members</div>
                     <div class="member-list">
@@ -717,7 +734,7 @@
                                 ${m.id === p.manager_id ? '<span class="role-tag">Manager</span>' : ''}
                             </div>`).join('') || '<div class="no-entries">No members assigned.</div>'}
                     </div>
-                    ${canManage ? `<div class="modal-actions"><button class="btn btn-ghost" id="pd-edit-members">✎ Edit Members</button></div>` : ''}
+                    ${canManage ? `<div class="modal-actions"><button class="btn btn-ghost" id="pd-edit-members">Edit Members</button></div>` : ''}
                     <div class="form-error hidden" id="pd-err"></div>
                 </div>`, true);
 
@@ -731,7 +748,7 @@
                             method: 'PATCH', body: JSON.stringify({ status }) })).project;
                         renderProjectDetail(updated); loadDashboard();
                     } catch (e) {
-                        const err = document.getElementById('pd-err'); err.textContent = '⚠ ' + e.message; err.classList.remove('hidden');
+                        const err = document.getElementById('pd-err'); err.textContent = '' + e.message; err.classList.remove('hidden');
                     }
                 };
             });
@@ -764,7 +781,7 @@
                     const updated = (await api('/api/projects/' + p.id + '/members', {
                         method: 'PATCH', body: JSON.stringify({ memberIds: [...selectedMembers] }) })).project;
                     renderProjectDetail(updated); loadDashboard();
-                } catch (e) { err.textContent = '⚠ ' + e.message; err.classList.remove('hidden'); }
+                } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
             };
         }
 
@@ -786,14 +803,14 @@
             taskPop.classList.remove('hidden');
             let data;
             try { data = await api('/api/tasks/mine'); }
-            catch (e) { taskPop.innerHTML = '<div class="task-empty">⚠ ' + esc(e.message) + '</div>'; return; }
+            catch (e) { taskPop.innerHTML = '<div class="task-empty">' + esc(e.message) + '</div>'; return; }
             renderTaskPop(data.tasks);
         }
 
         function renderTaskPop(tasks) {
             const done = tasks.filter(t => t.status === 'done').length;
             const body = !tasks.length
-                ? '<div class="task-empty">🎉 No tasks assigned for today.</div>'
+                ? '<div class="task-empty">No tasks assigned for today.</div>'
                 : '<div class="tp-body">' + tasks.map(t => `
                     <label class="task-item ${t.status === 'done' ? 'done' : ''}">
                         <input type="checkbox" data-id="${t.id}" ${t.status === 'done' ? 'checked' : ''}>
@@ -831,20 +848,20 @@
             bullets = [''];
             openModal(`
                 <div class="modal-head">
-                    <div><h3 class="serif">📝 Work Update</h3>
+                    <div><h3 class="serif">Work Update</h3>
                     <div class="sub" style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(CURRENT_USER.name)} · ${fmtDate(todayISO())} — date stamped automatically</div></div>
                     <button class="x" onclick="closeModal()">✕</button>
                 </div>
                 <div class="modal-body">
-                    <label style="font-size:14px;font-weight:600;display:block;margin-bottom:12px;">📋 What did you work on today?</label>
+                    <label style="font-size:14px;font-weight:600;display:block;margin-bottom:12px;">What did you work on today?</label>
                     <div id="bullet-list"></div>
-                    <button class="add-bullet" id="add-bullet-btn">＋ Add another point</button>
-                    <label style="font-size:14px;font-weight:600;display:block;margin-bottom:10px;">📎 Related file (optional)</label>
+                    <button class="add-bullet" id="add-bullet-btn">+ Add another point</button>
+                    <label style="font-size:14px;font-weight:600;display:block;margin-bottom:10px;">Related file (optional)</label>
                     <input type="text" class="field" id="attachment-input" style="width:100%;border:1px solid var(--border);background:#FCFAF4;border-radius:8px;padding:11px 13px;font-size:14px;outline:none;" placeholder="File name or link, e.g. Q3-summary.pdf" />
                     <div class="form-error hidden" id="wu-err"></div>
                     <div class="modal-actions">
                         <button class="btn btn-primary" id="wu-submit">Submit today's update</button>
-                        <span class="saved-msg hidden" id="wu-saved" style="align-self:center;">✓ Saved.</span>
+                        <span class="saved-msg hidden" id="wu-saved" style="align-self:center;">Saved.</span>
                     </div>
                 </div>`);
             renderBullets();
@@ -872,7 +889,7 @@
         async function submitWorkUpdate() {
             const err = document.getElementById('wu-err');
             const clean = bullets.map(b => b.trim()).filter(Boolean);
-            if (!clean.length) { err.textContent = '⚠ Add at least one update point.'; err.classList.remove('hidden'); return; }
+            if (!clean.length) { err.textContent = 'Add at least one update point.'; err.classList.remove('hidden'); return; }
             err.classList.add('hidden');
             const btn = document.getElementById('wu-submit'); btn.disabled = true; btn.textContent = 'Submitting…';
             try {
@@ -882,27 +899,39 @@
                 document.getElementById('attachment-input').value = '';
                 const saved = document.getElementById('wu-saved');
                 saved.classList.remove('hidden'); setTimeout(() => saved.classList.add('hidden'), 2500);
-            } catch (e) { err.textContent = '⚠ ' + e.message; err.classList.remove('hidden'); }
+            } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
             finally { btn.disabled = false; btn.textContent = "Submit today's update"; }
         }
 
         // ════════ USERS (admin) ════════
         let usersSelected = null;
 
+        let USERS_CACHE = [];
+
         async function loadUsers() {
             const dept = document.getElementById('users-dept-filter').value;
             const listEl = document.getElementById('u-list');
             try {
                 const { employees } = await api('/api/reports/employees' + (dept !== 'all' ? '?department=' + encodeURIComponent(dept) : ''));
-                if (!employees.length) { listEl.innerHTML = '<div class="no-entries">No employees.</div>'; return; }
-                listEl.innerHTML = employees.map(e => `
-                    <div class="u-item ${usersSelected === e.id ? 'active' : ''}" data-id="${e.id}">
-                        <span><span class="nm">${esc(e.name)}</span><span class="sub">${esc(e.employee_code)} · ${esc(e.job_title || '')}</span></span>
-                        <span class="score-pill ${e.label.cls}">${e.score}</span>
-                    </div>`).join('');
-                listEl.querySelectorAll('.u-item').forEach(item =>
-                    item.onclick = () => { usersSelected = +item.dataset.id; loadUsers(); renderUserDetail(usersSelected); });
-            } catch (e) { listEl.innerHTML = `<div class="no-entries">⚠ ${esc(e.message)}</div>`; }
+                USERS_CACHE = employees;
+                renderUsersList();
+            } catch (e) { listEl.innerHTML = `<div class="no-entries">${esc(e.message)}</div>`; }
+        }
+
+        function renderUsersList() {
+            const listEl = document.getElementById('u-list');
+            const q = (document.getElementById('users-search').value || '').trim().toLowerCase();
+            const list = q
+                ? USERS_CACHE.filter(e => e.name.toLowerCase().includes(q) || (e.employee_code || '').toLowerCase().includes(q))
+                : USERS_CACHE;
+            if (!list.length) { listEl.innerHTML = '<div class="no-entries">No matching employees.</div>'; return; }
+            listEl.innerHTML = list.map(e => `
+                <div class="u-item ${usersSelected === e.id ? 'active' : ''}" data-id="${e.id}">
+                    <span><span class="nm">${esc(e.name)}</span><span class="sub">${esc(e.employee_code)} · ${esc(e.job_title || '')}</span></span>
+                    <span class="score-pill ${e.label.cls}">${e.score}</span>
+                </div>`).join('');
+            listEl.querySelectorAll('.u-item').forEach(item =>
+                item.onclick = () => { usersSelected = +item.dataset.id; renderUsersList(); renderUserDetail(usersSelected); });
         }
 
         async function renderUserDetail(id) {
@@ -910,7 +939,7 @@
             panel.innerHTML = '<div class="empty-state">Loading…</div>';
             let data;
             try { data = await api('/api/reports/employees/' + id); }
-            catch (e) { panel.innerHTML = `<div class="empty-state"><div class="big">⚠</div>${esc(e.message)}</div>`; return; }
+            catch (e) { panel.innerHTML = `<div class="empty-state"><div class="big"></div>${esc(e.message)}</div>`; return; }
             const { employee: emp, stats, history } = data;
             const dir = EMPLOYEES.find(x => x.id === id) || {};
             const email = data.employee.email || dir.email || '—';
@@ -920,7 +949,7 @@
                 '<div class="history-list">' + history.map(e => `
                     <div class="history-item">
                         <div class="h-date">${fmtDate(e.entry_date)}
-                            ${e.attachment_note ? '<span class="h-attach">📎 ' + esc(e.attachment_note) + '</span>' : ''}</div>
+                            ${e.attachment_note ? '<span class="h-attach">' + esc(e.attachment_note) + '</span>' : ''}</div>
                         <ul class="h-bullets">${(e.bullets || []).map(b => '<li>' + esc(b) + '</li>').join('')}</ul>
                     </div>`).join('') + '</div>';
             panel.innerHTML = `
@@ -930,7 +959,7 @@
                         <div class="panel-id mono">${esc(emp.employee_code)} · ${esc(emp.department)} · ${esc(emp.job_title)}</div>
                     </div>
                     <div style="display:flex;align-items:center;gap:16px;">
-                        ${canAssign ? '<button class="btn btn-primary" id="open-assign">📌 Assign task</button>' : ''}
+                        ${canAssign ? '<button class="btn btn-primary" id="open-assign">Assign task</button>' : ''}
                         <div class="panel-score">
                             <div class="num">${stats.score}<span style="font-size:15px;color:var(--ink-soft);">/100</span></div>
                             <span class="label ${stats.label.cls}">${stats.label.text}</span>
@@ -949,7 +978,7 @@
                     <div class="stat-tile"><div class="val">${stats.avgWords}</div><div class="key">Avg words / point</div></div>
                     <div class="stat-tile"><div class="val">${stats.attachRatePct}%</div><div class="key">With evidence</div></div>
                 </div>
-                <div class="section-title" style="margin-bottom:12px;">📜 Work Updates</div>
+                <div class="section-title" style="margin-bottom:12px;">Work Updates</div>
                 ${historyHtml}`;
             if (canAssign) {
                 document.getElementById('open-assign').onclick = () => openAssignModal(emp);
@@ -962,7 +991,7 @@
             openModal(`
                 <div class="modal-head">
                     <div>
-                        <h3 class="serif">📌 Assign a task</h3>
+                        <h3 class="serif">Assign a task</h3>
                         <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(emp.name)} · ${esc(emp.job_title)}</div>
                     </div>
                     <button class="x" onclick="closeModal()">✕</button>
@@ -995,7 +1024,7 @@
             document.getElementById('assign-btn').onclick = async () => {
                 const err = document.getElementById('assign-err'); err.classList.add('hidden');
                 const title = document.getElementById('assign-title').value.trim();
-                if (!title) { err.textContent = '⚠ Enter a task title.'; err.classList.remove('hidden'); return; }
+                if (!title) { err.textContent = 'Enter a task title.'; err.classList.remove('hidden'); return; }
                 const btn = document.getElementById('assign-btn'); btn.disabled = true; btn.textContent = 'Assigning…';
                 try {
                     await api('/api/tasks', { method: 'POST', body: JSON.stringify({
@@ -1004,7 +1033,7 @@
                     document.getElementById('assign-title').value = '';
                     document.getElementById('assign-details').value = '';
                     await loadAssignedTasks(emp.id, dateEl.value);
-                } catch (e) { err.textContent = '⚠ ' + e.message; err.classList.remove('hidden'); }
+                } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
                 finally { btn.disabled = false; btn.textContent = 'Assign task'; }
             };
         }

@@ -15,7 +15,7 @@ const VALID_STATUS = ['open', 'paused', 'closed'];
 const PROJECT_SELECT = `
   SELECT p.id, p.name, p.description, p.department, p.status,
          p.manager_id, m.name AS manager_name, m.employee_code AS manager_code,
-         p.created_at, p.updated_at,
+         p.start_date, p.end_date, p.created_at, p.updated_at,
          COALESCE(mem.member_count, 0) AS member_count,
          COALESCE(mem.members, '[]'::json) AS members
   FROM projects p
@@ -76,9 +76,15 @@ router.get('/:id', requireAuth, wrap(async (req, res) => {
 // POST /api/projects — any authenticated employee can start a project; whoever
 // creates it becomes the project manager automatically.
 router.post('/', requireAuth, wrap(async (req, res) => {
-  const { name, description, department, memberIds } = req.body || {};
+  const { name, description, department, memberIds, startDate, endDate } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Project name is required.' });
   if (!department || !department.trim()) return res.status(400).json({ error: 'Department is required.' });
+  // Empty strings from the form become NULL (dates are optional).
+  const start = startDate || null;
+  const end = endDate || null;
+  if (start && end && end < start) {
+    return res.status(400).json({ error: 'Target end date cannot be before the start date.' });
+  }
 
   const managerId = req.user.id;
   const ids = Array.isArray(memberIds)
@@ -89,9 +95,9 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `INSERT INTO projects (name, description, department, manager_id, created_by)
-       VALUES ($1, $2, $3, $4, $4) RETURNING id`,
-      [name.trim().slice(0, 200), (description || '').trim().slice(0, 4000), department.trim().slice(0, 100), managerId]
+      `INSERT INTO projects (name, description, department, manager_id, created_by, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $4, $5, $6) RETURNING id`,
+      [name.trim().slice(0, 200), (description || '').trim().slice(0, 4000), department.trim().slice(0, 100), managerId, start, end]
     );
     const projectId = rows[0].id;
 
