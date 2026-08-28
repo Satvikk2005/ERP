@@ -4,16 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rush ERP</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#C10058" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --bg: #FBF7EF; --card: #FFFFFF; --border: #E8E0CC; --ink: #2B2620; --ink-soft: #7A6F5C;
-            --amber: #D98C2B; --amber-deep: #A85F1C; --amber-soft: #F6E4C7;
+            /* Brand: #C10058. The former "amber" accent tokens now carry the brand
+               pink so every primary button, active state, avatar and link picks it
+               up site-wide. Project "paused" uses its own warm token to stay
+               distinct from the brand colour. */
+            --bg: #FBF6F8; --card: #FFFFFF; --border: #EBDCE3; --ink: #2A2126; --ink-soft: #7C6B73;
+            --amber: #C10058; --amber-deep: #9E0049; --amber-soft: #FCE1EC;
+            --brand: #C10058; --brand-deep: #9E0049; --brand-soft: #FCE1EC;
+            --warn: #B5730B; --warn-soft: #F7E8CE;
             --green: #4F8F63; --green-soft: #E4F0E7; --red: #C1585B; --red-soft: #F7E4E4;
-            --blue: #4C74A8; --blue-soft: #E3ECF5; --track: #EFE8D6; --shadow: 0 12px 32px rgba(60, 45, 10, 0.06);
+            --blue: #4C74A8; --blue-soft: #E3ECF5; --track: #F1E4EA; --shadow: 0 12px 32px rgba(120, 10, 60, 0.07);
         }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh; }
         .mono { font-family: 'IBM Plex Mono', monospace; }
@@ -92,7 +100,7 @@
         .stat-card:hover { transform: translateY(-2px); }
         .stat-card.sel { border-left-color: var(--amber); }
         .stat-card.s-open { border-left-color: var(--green); }
-        .stat-card.s-paused { border-left-color: var(--amber); }
+        .stat-card.s-paused { border-left-color: var(--warn); }
         .stat-card.s-closed { border-left-color: var(--red); }
         .stat-card .num { font-size: 32px; font-weight: 700; line-height: 1; }
         .stat-card .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 8px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
@@ -119,7 +127,7 @@
         .chip.dept { background: var(--blue-soft); color: var(--blue); border-color: #cddcec; }
         .pill { font-size: 10.5px; font-weight: 700; padding: 4px 11px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em; }
         .pill.open { background: var(--green-soft); color: var(--green); }
-        .pill.paused { background: var(--amber-soft); color: var(--amber-deep); }
+        .pill.paused { background: var(--warn-soft); color: var(--warn); }
         .pill.closed { background: var(--red-soft); color: var(--red); }
         .proj-card .foot { font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
         .avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--amber-soft); color: var(--amber-deep);
@@ -163,7 +171,7 @@
             font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
         .pd-status button.active { color: #fff; border-color: transparent; }
         .pd-status button.active.open { background: var(--green); }
-        .pd-status button.active.paused { background: var(--amber-deep); }
+        .pd-status button.active.paused { background: var(--warn); }
         .pd-status button.active.closed { background: var(--red); }
         .pd-status button:disabled { opacity: .5; cursor: default; }
         .pd-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -241,6 +249,50 @@
         }
         .menu-toggle { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
             width: 38px; height: 38px; align-items: center; justify-content: center; font-size: 17px; cursor: pointer; }
+
+        /* ── brand logo tile (shows logo.png if present, else logo.svg) ── */
+        .brand-logo { width: 30px; height: 30px; border-radius: 8px; background: var(--brand); overflow: hidden;
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .brand-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .auth-logo { display: flex; justify-content: center; margin-bottom: 14px; }
+        .auth-logo .brand-logo { width: 54px; height: 54px; border-radius: 14px; }
+
+        /* ── tasks: intern snippet button + popover ── */
+        .tasks-btn { position: relative; }
+        .task-badge { position: absolute; top: -6px; right: -6px; background: var(--brand); color: #fff; font-size: 10px;
+            font-weight: 700; min-width: 18px; height: 18px; border-radius: 10px; display: inline-flex; align-items: center;
+            justify-content: center; padding: 0 5px; border: 2px solid var(--card); }
+        .task-pop { position: absolute; top: 52px; right: 28px; width: 340px; max-width: calc(100vw - 32px); background: var(--card);
+            border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 48px rgba(120,10,60,.16); z-index: 55;
+            overflow: hidden; }
+        .task-pop .tp-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: space-between; }
+        .task-pop .tp-head b { font-size: 14px; }
+        .task-pop .tp-head span { font-size: 11px; color: var(--ink-soft); }
+        .task-pop .tp-body { max-height: 340px; overflow-y: auto; padding: 8px; }
+        .task-item { display: flex; gap: 10px; padding: 10px 10px; border-radius: 9px; align-items: flex-start; }
+        .task-item:hover { background: var(--bg); }
+        .task-item input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+        .task-item .t-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+        .task-item.done .t-title { text-decoration: line-through; color: var(--ink-soft); }
+        .task-item .t-sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+        .task-empty { padding: 26px 16px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+
+        /* ── give-task block inside a user's report ── */
+        .assign-box { border: 1px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 22px; background: var(--brand-soft); }
+        .assign-box .ab-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+        .assign-box .ab-head b { font-size: 13px; color: var(--brand-deep); text-transform: uppercase; letter-spacing: .05em; }
+        .assign-box input[type="text"], .assign-box input[type="date"], .assign-box textarea {
+            width: 100%; border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 10px 12px;
+            font-size: 13.5px; outline: none; margin-bottom: 8px; }
+        .assign-box textarea { min-height: 60px; resize: vertical; }
+        .assign-box input:focus, .assign-box textarea:focus { border-color: var(--brand); }
+        .assigned-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .assigned-row { display: flex; align-items: center; gap: 8px; font-size: 13px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 11px; }
+        .assigned-row .st { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+        .assigned-row .st.pending { background: var(--warn-soft); color: var(--warn); }
+        .assigned-row .st.done { background: var(--green-soft); color: var(--green); }
     </style>
 </head>
 <body>
@@ -248,8 +300,9 @@
     <!-- ════════ AUTH ════════ -->
     <div id="auth-screen">
         <div class="auth-card">
-            <div class="auth-eyebrow">🔒 Rush ERP</div>
-            <h1 class="auth-title serif">Sign in</h1>
+            <div class="auth-logo"><span class="brand-logo"><img src="logo.png" alt="Rush ERP" onerror="this.onerror=null;this.src='logo.svg'"></span></div>
+            <div class="auth-eyebrow" style="justify-content:center;">Rush ERP</div>
+            <h1 class="auth-title serif" style="text-align:center;">Sign in</h1>
             <p class="auth-sub">Enter your email (or name) and password to access the workspace.</p>
             <div class="field">
                 <label>Email or name</label>
@@ -269,7 +322,7 @@
     <div id="app-screen">
         <div class="layout">
             <aside class="sidebar" id="sidebar">
-                <div class="sb-brand"><span class="dot"></span> Rush ERP</div>
+                <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Rush ERP</div>
                 <nav class="sb-nav">
                     <div class="sb-link active" data-view="home"><span class="ico">🏠</span> Home</div>
                     <div class="sb-link hidden" data-view="users" id="nav-users"><span class="ico">👥</span> Users</div>
@@ -290,9 +343,11 @@
                         </div>
                     </div>
                     <div class="topbar-actions">
+                        <button class="btn btn-ghost tasks-btn hidden" id="my-tasks-btn">✅ My Tasks<span class="task-badge hidden" id="task-badge">0</span></button>
                         <button class="btn btn-ghost" id="work-update-btn">📝 Work Update</button>
                         <button class="btn btn-primary" id="new-project-btn">＋ New Project</button>
                     </div>
+                    <div class="task-pop hidden" id="task-pop"></div>
                 </div>
 
                 <!-- HOME / DASHBOARD -->
@@ -352,6 +407,9 @@
         }
         function initials(name) { return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
         function isAdmin() { return CURRENT_USER && CURRENT_USER.accessRole === 'admin'; }
+        function canManageUsers() { return CURRENT_USER && ['manager', 'admin'].includes(CURRENT_USER.accessRole); }
+        function isInternEmp(emp) { return /intern/i.test((emp && emp.job_title) || ''); }
+        function currentIsIntern() { return CURRENT_USER && (CURRENT_USER.accessRole === 'employee' || /intern/i.test(CURRENT_USER.jobTitle || '')); }
 
         // ════════ AUTH ════════
         document.getElementById('login-btn').onclick = doLogin;
@@ -400,7 +458,10 @@
             document.getElementById('sb-name').textContent = CURRENT_USER.name;
             document.getElementById('sb-role').textContent =
                 CURRENT_USER.department + ' · ' + CURRENT_USER.accessRole;
-            document.getElementById('nav-users').classList.toggle('hidden', !isAdmin());
+            // "Users" (directory + task assignment) is for people above interns.
+            document.getElementById('nav-users').classList.toggle('hidden', !canManageUsers());
+            // Interns get a "My Tasks" button showing what they've been assigned today.
+            document.getElementById('my-tasks-btn').classList.toggle('hidden', !currentIsIntern());
             try {
                 const { employees } = await api('/api/employees');
                 EMPLOYEES = employees;
@@ -409,6 +470,7 @@
             populateDeptFilters();
             switchView('home');
             await loadDashboard();
+            if (currentIsIntern()) refreshTaskBadge();
         }
 
         // ════════ NAV ════════
@@ -418,7 +480,7 @@
         document.getElementById('menu-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('open');
 
         function switchView(view) {
-            if (view === 'users' && !isAdmin()) view = 'home';
+            if (view === 'users' && !canManageUsers()) view = 'home';
             document.querySelectorAll('.sb-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
             document.getElementById('view-home').classList.toggle('hidden', view !== 'home');
             document.getElementById('view-users').classList.toggle('hidden', view !== 'users');
@@ -705,6 +767,61 @@
             };
         }
 
+        // ════════ MY TASKS (intern snippet) ════════
+        const taskPop = document.getElementById('task-pop');
+        document.getElementById('my-tasks-btn').onclick = async (e) => {
+            e.stopPropagation();
+            if (!taskPop.classList.contains('hidden')) { taskPop.classList.add('hidden'); return; }
+            await openTaskPop();
+        };
+        document.addEventListener('click', (e) => {
+            if (!taskPop.classList.contains('hidden') && !taskPop.contains(e.target) && e.target.id !== 'my-tasks-btn') {
+                taskPop.classList.add('hidden');
+            }
+        });
+
+        async function openTaskPop() {
+            taskPop.innerHTML = '<div class="task-empty">Loading…</div>';
+            taskPop.classList.remove('hidden');
+            let data;
+            try { data = await api('/api/tasks/mine'); }
+            catch (e) { taskPop.innerHTML = '<div class="task-empty">⚠ ' + esc(e.message) + '</div>'; return; }
+            renderTaskPop(data.tasks);
+        }
+
+        function renderTaskPop(tasks) {
+            const done = tasks.filter(t => t.status === 'done').length;
+            const body = !tasks.length
+                ? '<div class="task-empty">🎉 No tasks assigned for today.</div>'
+                : '<div class="tp-body">' + tasks.map(t => `
+                    <label class="task-item ${t.status === 'done' ? 'done' : ''}">
+                        <input type="checkbox" data-id="${t.id}" ${t.status === 'done' ? 'checked' : ''}>
+                        <span><span class="t-title">${esc(t.title)}</span>
+                        ${t.details ? '<span class="t-sub">' + esc(t.details) + '</span>' : ''}
+                        <span class="t-sub">from ${esc(t.assigned_by_name || 'management')}</span></span>
+                    </label>`).join('') + '</div>';
+            taskPop.innerHTML = `<div class="tp-head"><b>Today's Tasks</b><span>${done}/${tasks.length} done</span></div>${body}`;
+            taskPop.querySelectorAll('.task-item input').forEach(cb => {
+                cb.onchange = async () => {
+                    try {
+                        await api('/api/tasks/' + cb.dataset.id, { method: 'PATCH',
+                            body: JSON.stringify({ status: cb.checked ? 'done' : 'pending' }) });
+                        await openTaskPop(); refreshTaskBadge();
+                    } catch (e) { cb.checked = !cb.checked; }
+                };
+            });
+        }
+
+        async function refreshTaskBadge() {
+            try {
+                const { tasks } = await api('/api/tasks/mine');
+                const pending = tasks.filter(t => t.status !== 'done').length;
+                const badge = document.getElementById('task-badge');
+                badge.textContent = pending;
+                badge.classList.toggle('hidden', pending === 0);
+            } catch (e) {}
+        }
+
         // ════════ WORK UPDATE ════════
         document.getElementById('work-update-btn').onclick = openWorkUpdate;
         let bullets = [''];
@@ -796,6 +913,17 @@
             const { employee: emp, stats, history } = data;
             const dir = EMPLOYEES.find(x => x.id === id) || {};
             const email = data.employee.email || dir.email || '—';
+            const canAssign = canManageUsers() && isInternEmp(emp);
+            const assignHtml = canAssign ? `
+                <div class="assign-box" id="assign-box">
+                    <div class="ab-head"><b>📌 Assign a task</b>
+                        <input type="date" id="assign-date" value="${todayISO()}" style="width:auto;margin:0;"></div>
+                    <input type="text" id="assign-title" placeholder="Task title (e.g. Draft 3 LinkedIn posts)">
+                    <textarea id="assign-details" placeholder="Details (optional)"></textarea>
+                    <button class="btn btn-primary" id="assign-btn" style="width:100%;justify-content:center;">Assign task</button>
+                    <div class="form-error hidden" id="assign-err" style="margin-top:8px;"></div>
+                    <div class="assigned-list" id="assigned-list" style="margin-top:12px;"></div>
+                </div>` : '';
             const historyHtml = !history.length ?
                 '<div class="no-entries">No work updates submitted yet.</div>' :
                 '<div class="history-list">' + history.map(e => `
@@ -821,6 +949,7 @@
                     <div class="cell"><div class="k">Role</div><div class="v">${esc(emp.job_title)}</div></div>
                     <div class="cell"><div class="k">Employee ID</div><div class="v">${esc(emp.employee_code)}</div></div>
                 </div>
+                ${assignHtml}
                 <div class="stat-grid">
                     <div class="stat-tile"><div class="val">${stats.submittedDays}/${stats.windowDays}</div><div class="key">Days logged (30d)</div></div>
                     <div class="stat-tile"><div class="val">${stats.avgBulletsPerEntry}</div><div class="key">Avg points / entry</div></div>
@@ -829,6 +958,43 @@
                 </div>
                 <div class="section-title" style="margin-bottom:12px;">📜 Work Updates</div>
                 ${historyHtml}`;
+            if (canAssign) wireAssignBox(emp);
+        }
+
+        function wireAssignBox(emp) {
+            const dateEl = document.getElementById('assign-date');
+            loadAssignedTasks(emp.id, dateEl.value);
+            dateEl.onchange = () => loadAssignedTasks(emp.id, dateEl.value);
+            document.getElementById('assign-btn').onclick = async () => {
+                const err = document.getElementById('assign-err'); err.classList.add('hidden');
+                const title = document.getElementById('assign-title').value.trim();
+                if (!title) { err.textContent = '⚠ Enter a task title.'; err.classList.remove('hidden'); return; }
+                const btn = document.getElementById('assign-btn'); btn.disabled = true; btn.textContent = 'Assigning…';
+                try {
+                    await api('/api/tasks', { method: 'POST', body: JSON.stringify({
+                        internId: emp.id, title, details: document.getElementById('assign-details').value.trim(),
+                        date: dateEl.value }) });
+                    document.getElementById('assign-title').value = '';
+                    document.getElementById('assign-details').value = '';
+                    await loadAssignedTasks(emp.id, dateEl.value);
+                } catch (e) { err.textContent = '⚠ ' + e.message; err.classList.remove('hidden'); }
+                finally { btn.disabled = false; btn.textContent = 'Assign task'; }
+            };
+        }
+
+        async function loadAssignedTasks(internId, date) {
+            const list = document.getElementById('assigned-list');
+            if (!list) return;
+            try {
+                const { tasks } = await api('/api/tasks?internId=' + internId + '&date=' + date);
+                list.innerHTML = !tasks.length
+                    ? '<div style="font-size:12px;color:var(--ink-soft);">No tasks for this day yet.</div>'
+                    : tasks.map(t => `
+                        <div class="assigned-row">
+                            <span>${esc(t.title)}${t.details ? '<span style="color:var(--ink-soft)"> — ' + esc(t.details) + '</span>' : ''}</span>
+                            <span class="st ${t.status}">${t.status}</span>
+                        </div>`).join('');
+            } catch (e) { list.innerHTML = '<div style="font-size:12px;color:var(--red);">' + esc(e.message) + '</div>'; }
         }
     </script>
 </body>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rush ERP">
+  <rect width="64" height="64" rx="15" fill="#C10058"/>
+  <g fill="#ffffff">
+    <!-- left horn -->
+    <path d="M23 41c-9-4-12-15-6-24 1 6 2 10 7 15 1 4 1 6-1 9z"/>
+    <!-- right horn -->
+    <path d="M41 41c9-4 12-15 6-24-1 6-2 10-7 15-1 4-1 6 1 9z"/>
+    <!-- head -->
+    <path d="M26 27h12a6 6 0 0 1 6 6v3a12 12 0 0 1-24 0v-3a6 6 0 0 1 6-6z"/>
+    <!-- muzzle -->
+    <path d="M28 45h8l-2 6a2 2 0 0 1-4 0z"/>
+  </g>
+</svg>
