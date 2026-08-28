@@ -1,4 +1,12 @@
-# WorkTrack ERP — production build (self-hosted on Hostinger VPS)
+# Rush ERP — production build
+
+> **ERP update (dashboard + projects):** WorkTrack is now a company-wide ERP. After login you land on a **Dashboard** of all projects, with Open / Paused / Closed counts across the top and a department filter. **＋ New Project** (top-right) creates a project — the creator is automatically its project manager, you pick which employees to assign from the existing roster, and projects are department-scoped. Clicking a project opens it, where the manager or an admin can switch its status and edit members. A left **sidebar** has **Home** (the dashboard) and an admin-only **Users** section listing every employee with their contact info and work updates. A **📝 Work Update** button (next to New Project) lets anyone log their daily update.
+>
+> **Bootstrap admin:** on every boot the API runs all SQL migrations and ensures one admin account exists. Defaults are name `Satvikk` / password `2005` (log in with either the name or the email `satvikk@rush.local`). Override via env vars `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_CODE`. **Change the default password after first login** — it's a bootstrap credential, not a permanent one. Because migrations run automatically at startup, a Render/VPS redeploy needs no manual `npm run migrate` step (it remains available for one-off local runs).
+
+---
+
+## Original deployment guide (self-hosted on Hostinger VPS)
 
 > **Update:** this build now runs entirely on your own server via Docker — Postgres, the API, and the frontend all live in containers on one VPS. No Supabase, Render, or Vercel involved. If you previously set up Supabase, you can ignore those steps below; skip straight to "Deploying on a Hostinger VPS."
 

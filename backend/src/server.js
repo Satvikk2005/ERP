@@ -8,6 +8,15 @@ const authRoutes = require('./routes/auth.routes');
 const entriesRoutes = require('./routes/entries.routes');
 const employeesRoutes = require('./routes/employees.routes');
 const reportsRoutes = require('./routes/reports.routes');
+const projectsRoutes = require('./routes/projects.routes');
+const { initDb } = require('./init');
+
+// A rejected promise in an async route handler isn't caught by Express 4's
+// error middleware; without this guard one transient DB error would crash the
+// whole process. Log and keep serving instead.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
 
 const app = express();
 
@@ -47,6 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/entries', entriesRoutes);
 app.use('/api/employees', employeesRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/projects', projectsRoutes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
@@ -61,4 +71,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`WorkTrack API listening on port ${PORT}`));
+
+// Bring the schema up to date and guarantee the bootstrap admin exists before
+// serving traffic. A failure here is logged but doesn't stop the server from
+// booting (e.g. so /health stays reachable while a DB issue is investigated).
+initDb()
+  .catch((err) => console.error('Database init failed (continuing to boot):', err.message))
+  .finally(() => app.listen(PORT, () => console.log(`Rush ERP API listening on port ${PORT}`)));

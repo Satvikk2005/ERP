@@ -1,19 +1,11 @@
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const { Pool } = require('pg');
+const { initDb } = require('../src/init');
 
 async function main() {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
-  });
-
-  const sql = fs.readFileSync(path.join(__dirname, '..', 'migrations', '001_init.sql'), 'utf8');
-  console.log('Applying migration 001_init.sql ...');
-  await pool.query(sql);
-  console.log('Done. Tables created (or already existed).');
-  await pool.end();
+  console.log('Applying all migrations and ensuring bootstrap admin ...');
+  await initDb();
+  console.log('Done.');
+  process.exit(0);
 }
 
 main().catch((err) => {

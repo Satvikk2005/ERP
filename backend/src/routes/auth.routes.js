@@ -37,7 +37,13 @@ router.post('/login', loginLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  const { rows } = await db.query('SELECT * FROM employees WHERE email = $1', [email.toLowerCase().trim()]);
+  // Accept an email, a full name, or an employee code as the login identifier —
+  // matched case-insensitively — so bootstrap accounts like "Satvikk" work too.
+  const identifier = email.toLowerCase().trim();
+  const { rows } = await db.query(
+    'SELECT * FROM employees WHERE lower(email) = $1 OR lower(name) = $1 OR lower(employee_code) = $1 LIMIT 1',
+    [identifier]
+  );
   const user = rows[0];
 
   // Always compare against a dummy hash if user not found — avoids leaking
