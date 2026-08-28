@@ -16,8 +16,11 @@ router.get('/employees', requireAuth, requireRole('manager', 'admin'), async (re
     where = 'WHERE e.department = $1';
   }
 
+  // Email and access role are included so the admin-only Users directory can
+  // show full contact info alongside each person's work history.
   const { rows: employees } = await db.query(
-    `SELECT e.id, e.employee_code, e.name, e.department, e.job_title FROM employees e ${where} ORDER BY e.name`,
+    `SELECT e.id, e.employee_code, e.name, e.department, e.job_title, e.email, e.access_role, e.is_active
+     FROM employees e ${where} ORDER BY e.name`,
     params
   );
 
@@ -45,7 +48,7 @@ router.get('/employees/:id', requireAuth, requireRole('manager', 'admin'), async
   const { from, to } = req.query;
 
   const { rows: empRows } = await db.query(
-    'SELECT id, employee_code, name, department, job_title FROM employees WHERE id = $1',
+    'SELECT id, employee_code, name, department, job_title, email, access_role FROM employees WHERE id = $1',
     [id]
   );
   const employee = empRows[0];
