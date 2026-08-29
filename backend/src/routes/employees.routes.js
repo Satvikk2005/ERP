@@ -17,15 +17,18 @@ router.get('/', requireAuth, async (req, res) => {
   res.json({ employees: rows });
 });
 
-// POST /api/employees — admin only: create a new employee account.
-// Generates a random temporary password and returns it ONCE so the admin
-// can share it out-of-band; it is never stored or logged in plaintext.
-router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
+// POST /api/employees — higher officials (manager/admin) create a new account.
+// Generates a random temporary password and returns it ONCE so it can be shared
+// out-of-band; it is never stored or logged in plaintext. Guardrail: only an
+// admin may grant a manager/admin access role — a manager can only add
+// ordinary (intern/employee) accounts, so they can't mint new admins.
+router.post('/', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
   const { name, email, department, jobTitle, accessRole, employeeCode } = req.body || {};
   if (!name || !email || !department || !jobTitle || !employeeCode) {
     return res.status(400).json({ error: 'name, email, department, jobTitle, employeeCode are required.' });
   }
-  const role = ['employee', 'manager', 'admin'].includes(accessRole) ? accessRole : 'employee';
+  let role = ['employee', 'manager', 'admin'].includes(accessRole) ? accessRole : 'employee';
+  if (req.user.accessRole !== 'admin') role = 'employee';
 
   const tempPassword = crypto.randomBytes(9).toString('base64url'); // 12-char random string
   const hash = await bcrypt.hash(tempPassword, 12);
@@ -46,15 +49,22 @@ router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   }
 });
 
-// POST /api/employees/:id/reset-password — admin only: force-reset someone's password.
-router.post('/:id/reset-password', requireAuth, requireRole('admin'), async (req, res) => {
+// POST /api/employees/:id/reset-password — higher officials force-reset a
+// password. Guardrail: a manager may only reset ordinary (employee) accounts;
+// resetting another manager/admin requires admin.
+router.post('/:id/reset-password', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+  const { rows: target } = await db.query('SELECT access_role FROM employees WHERE id = $1', [req.params.id]);
+  if (!target[0]) return res.status(404).json({ error: 'Employee not found.' });
+  if (req.user.accessRole !== 'admin' && target[0].access_role !== 'employee') {
+    return res.status(403).json({ error: 'Only an admin can reset a manager or admin account.' });
+  }
+
   const tempPassword = crypto.randomBytes(9).toString('base64url');
   const hash = await bcrypt.hash(tempPassword, 12);
-  const { rowCount } = await db.query(
+  await db.query(
     'UPDATE employees SET password_hash = $1, must_reset_pw = true, failed_attempts = 0, locked_until = NULL WHERE id = $2',
     [hash, req.params.id]
   );
-  if (!rowCount) return res.status(404).json({ error: 'Employee not found.' });
   res.json({ temporaryPassword: tempPassword });
 });
 

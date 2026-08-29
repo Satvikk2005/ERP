@@ -389,6 +389,7 @@
                 <div class="page hidden" id="view-users">
                     <div class="users-layout">
                         <div class="users-side">
+                            <button class="btn btn-primary" id="add-emp-btn" style="width:100%;justify-content:center;margin-bottom:10px;">+ Add Employee</button>
                             <input type="text" id="users-search" placeholder="Search by name..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;background:#FCFAF4;outline:none;margin-bottom:8px;" />
                             <select id="users-dept-filter"><option value="all">All Departments</option></select>
                             <div class="u-list" id="u-list"></div>
@@ -557,6 +558,104 @@
         document.getElementById('users-dept-filter').onchange = loadUsers;
         document.getElementById('users-search').oninput = renderUsersList;
         document.getElementById('perf-dept-filter').onchange = loadPerformance;
+        document.getElementById('add-emp-btn').onclick = openAddEmployeeModal;
+
+        // ════════ ADD EMPLOYEE / RESET PASSWORD (managers/admins) ════════
+        function nextEmpCode() {
+            let max = 0;
+            EMPLOYEES.forEach(e => { const m = /EMP-(\d+)/i.exec(e.employee_code || ''); if (m) max = Math.max(max, +m[1]); });
+            return 'EMP-' + String(max + 1).padStart(3, '0');
+        }
+
+        function openAddEmployeeModal() {
+            const deptOptions = DEPARTMENTS.map(d => `<option value="${esc(d)}"></option>`).join('');
+            const roleField = isAdmin()
+                ? `<select id="ae-role"><option value="employee">Employee / Intern</option><option value="manager">Manager</option><option value="admin">Admin</option></select>`
+                : `<div class="readonly-box">Employee / Intern</div>`;
+            openModal(`
+                <div class="modal-head"><h3 class="serif">Add Employee</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <div class="row2">
+                        <div class="field"><label>Full name</label><input type="text" id="ae-name" placeholder="e.g. Riya Sharma"></div>
+                        <div class="field"><label>Employee code</label><input type="text" id="ae-code" value="${nextEmpCode()}"></div>
+                    </div>
+                    <div class="field"><label>Email</label><input type="text" id="ae-email" placeholder="firstname.lastname@accescoliving.com"></div>
+                    <div class="row2">
+                        <div class="field"><label>Department</label><input type="text" id="ae-dept" list="ae-deptlist" placeholder="Pick or type new"><datalist id="ae-deptlist">${deptOptions}</datalist></div>
+                        <div class="field"><label>Job title</label><input type="text" id="ae-title" placeholder="e.g. Marketing Intern"></div>
+                    </div>
+                    <div class="field"><label>Access level</label>${roleField}</div>
+                    <div class="form-error hidden" id="ae-err"></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button class="btn btn-primary" id="ae-create">Create account</button>
+                    </div>
+                </div>`);
+            // Auto-fill an email from the name if the user hasn't typed one.
+            document.getElementById('ae-name').oninput = (e) => {
+                const emailEl = document.getElementById('ae-email');
+                if (!emailEl.dataset.touched) {
+                    const slug = e.target.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
+                    emailEl.value = slug ? slug + '@accescoliving.com' : '';
+                }
+            };
+            document.getElementById('ae-email').oninput = (e) => { e.target.dataset.touched = '1'; };
+            document.getElementById('ae-create').onclick = createEmployee;
+        }
+
+        async function createEmployee() {
+            const err = document.getElementById('ae-err'); err.classList.add('hidden');
+            const body = {
+                name: document.getElementById('ae-name').value.trim(),
+                employeeCode: document.getElementById('ae-code').value.trim(),
+                email: document.getElementById('ae-email').value.trim(),
+                department: document.getElementById('ae-dept').value.trim(),
+                jobTitle: document.getElementById('ae-title').value.trim(),
+                accessRole: document.getElementById('ae-role') ? document.getElementById('ae-role').value : 'employee',
+            };
+            if (!body.name || !body.email || !body.department || !body.jobTitle || !body.employeeCode) {
+                err.textContent = 'All fields are required.'; err.classList.remove('hidden'); return;
+            }
+            const btn = document.getElementById('ae-create'); btn.disabled = true; btn.textContent = 'Creating…';
+            try {
+                const { employee, temporaryPassword } = await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
+                // refresh the directory so the new person appears everywhere
+                try { const r = await api('/api/employees'); EMPLOYEES = r.employees; DEPARTMENTS = [...new Set(r.employees.map(x => x.department))].sort(); populateDeptFilters(); } catch (e) {}
+                showCredModal('Employee created', employee.name, employee.email, temporaryPassword);
+                loadUsers();
+            } catch (e) {
+                err.textContent = e.message; err.classList.remove('hidden');
+                btn.disabled = false; btn.textContent = 'Create account';
+            }
+        }
+
+        function showCredModal(title, name, email, tempPassword) {
+            openModal(`
+                <div class="modal-head"><h3 class="serif">${esc(title)}</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;">Share this temporary password securely. ${esc(name)} will be asked to set their own on first login. It is shown once and cannot be retrieved later.</p>
+                    ${email ? `<div class="readonly-box" style="margin-bottom:10px;">${esc(email)}</div>` : ''}
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <div class="readonly-box mono" id="cred-pw" style="flex:1;font-size:15px;letter-spacing:.5px;">${esc(tempPassword)}</div>
+                        <button class="btn btn-ghost" id="cred-copy">Copy</button>
+                    </div>
+                    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()" style="width:100%;justify-content:center;">Done</button></div>
+                </div>`);
+            document.getElementById('cred-copy').onclick = () => {
+                const btn = document.getElementById('cred-copy');
+                const done = () => { btn.textContent = 'Copied'; setTimeout(() => (btn.textContent = 'Copy'), 1500); };
+                if (navigator.clipboard) navigator.clipboard.writeText(tempPassword).then(done).catch(done);
+                else done();
+            };
+        }
+
+        async function resetEmployeePassword(emp) {
+            if (!confirm('Reset password for ' + emp.name + '? Their current password stops working immediately.')) return;
+            try {
+                const { temporaryPassword } = await api('/api/employees/' + emp.id + '/reset-password', { method: 'POST' });
+                showCredModal('Password reset', emp.name, emp.email, temporaryPassword);
+            } catch (e) { alert(e.message); }
+        }
 
         // ════════ DASHBOARD ════════
         let currentStatusFilter = 'all';
@@ -1025,6 +1124,7 @@
             const dir = EMPLOYEES.find(x => x.id === id) || {};
             const email = data.employee.email || dir.email || '—';
             const canAssign = canManageUsers() && isInternEmp(emp);
+            const canReset = canManageUsers() && (isAdmin() || emp.access_role === 'employee');
             const historyHtml = !history.length ?
                 '<div class="no-entries">No work updates submitted yet.</div>' :
                 '<div class="history-list">' + history.map(e => `
@@ -1039,7 +1139,8 @@
                         <div class="panel-name serif">${esc(emp.name)}</div>
                         <div class="panel-id mono">${esc(emp.employee_code)} · ${esc(emp.department)} · ${esc(emp.job_title)}</div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+                        ${canReset ? '<button class="btn btn-ghost" id="reset-pw">Reset password</button>' : ''}
                         ${canAssign ? '<button class="btn btn-primary" id="open-assign">Assign task</button>' : ''}
                         <div class="panel-score">
                             <div class="num">${stats.score}<span style="font-size:15px;color:var(--ink-soft);">/100</span></div>
@@ -1063,6 +1164,9 @@
                 ${historyHtml}`;
             if (canAssign) {
                 document.getElementById('open-assign').onclick = () => openAssignModal(emp);
+            }
+            if (canReset) {
+                document.getElementById('reset-pw').onclick = () => resetEmployeePassword({ id: emp.id, name: emp.name, email });
             }
         }
 
