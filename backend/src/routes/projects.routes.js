@@ -10,6 +10,15 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 
 const VALID_STATUS = ['open', 'paused', 'closed'];
 
+async function logActivity(q, projectId, actorId, action, detail) {
+  try {
+    await q.query(
+      'INSERT INTO project_activity (project_id, actor_id, action, detail) VALUES ($1,$2,$3,$4)',
+      [projectId, actorId, action, detail]
+    );
+  } catch (e) { console.error('activity log failed', e.message); }
+}
+
 // Shared SELECT that decorates a project with its manager's name, member count,
 // and the assigned member list as JSON.
 const PROJECT_SELECT = `
@@ -46,6 +55,11 @@ router.get('/', requireAuth, wrap(async (req, res) => {
     params.push(status);
     clauses.push(`p.status = $${params.length}`);
   }
+  // ?mine=1 → only projects the caller is a member of (the "My Projects" view).
+  if (req.query.mine === '1' || req.query.mine === 'true') {
+    params.push(req.user.id);
+    clauses.push(`p.id IN (SELECT project_id FROM project_members WHERE employee_id = $${params.length})`);
+  }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 
   const { rows } = await db.query(
@@ -58,19 +72,50 @@ router.get('/', requireAuth, wrap(async (req, res) => {
 // GET /api/projects/stats — counts by status for the dashboard tiles.
 // Registered before '/:id' so "stats" isn't captured as a project id.
 router.get('/stats', requireAuth, wrap(async (req, res) => {
+  const params = [];
+  let where = '';
+  if (req.query.mine === '1' || req.query.mine === 'true') {
+    params.push(req.user.id);
+    where = 'WHERE id IN (SELECT project_id FROM project_members WHERE employee_id = $1)';
+  }
   const { rows } = await db.query(
-    `SELECT status, COUNT(*)::int AS count FROM projects GROUP BY status`
+    `SELECT status, COUNT(*)::int AS count FROM projects ${where} GROUP BY status`,
+    params
   );
   const stats = { open: 0, paused: 0, closed: 0, total: 0 };
   rows.forEach((r) => { stats[r.status] = r.count; stats.total += r.count; });
   res.json({ stats });
 }));
 
-// GET /api/projects/:id — one project with its members.
+// GET /api/projects/:id — one project with its members. Members can view their
+// own projects; managers/admins can view any.
 router.get('/:id', requireAuth, wrap(async (req, res) => {
   const { rows } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Project not found.' });
+  const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
+  if (!priv) {
+    const { rows: m } = await db.query('SELECT 1 FROM project_members WHERE project_id = $1 AND employee_id = $2', [req.params.id, req.user.id]);
+    if (!m.length) return res.status(403).json({ error: 'You are not a member of this project.' });
+  }
   res.json({ project: rows[0] });
+}));
+
+// GET /api/projects/:id/history — activity log (members + managers/admins).
+router.get('/:id/history', requireAuth, wrap(async (req, res) => {
+  const { rows: exists } = await db.query('SELECT 1 FROM projects WHERE id = $1', [req.params.id]);
+  if (!exists[0]) return res.status(404).json({ error: 'Project not found.' });
+  const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
+  if (!priv) {
+    const { rows: m } = await db.query('SELECT 1 FROM project_members WHERE project_id = $1 AND employee_id = $2', [req.params.id, req.user.id]);
+    if (!m.length) return res.status(403).json({ error: 'You are not a member of this project.' });
+  }
+  const { rows } = await db.query(
+    `SELECT a.id, a.action, a.detail, a.created_at, e.name AS actor
+     FROM project_activity a LEFT JOIN employees e ON e.id = a.actor_id
+     WHERE a.project_id = $1 ORDER BY a.created_at DESC LIMIT 200`,
+    [req.params.id]
+  );
+  res.json({ history: rows });
 }));
 
 // POST /api/projects — any authenticated employee can start a project; whoever
@@ -110,6 +155,7 @@ router.post('/', requireAuth, wrap(async (req, res) => {
         [projectId, empId]
       );
     }
+    await logActivity(client, projectId, managerId, 'created', `created project "${name.trim().slice(0, 200)}"`);
     await client.query('COMMIT');
 
     const { rows: full } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [projectId]);
@@ -136,6 +182,7 @@ router.patch('/:id/status', requireAuth, wrap(async (req, res) => {
     return res.status(403).json({ error: 'Only the project manager or an admin can change the status.' });
   }
   await db.query('UPDATE projects SET status = $1, updated_at = now() WHERE id = $2', [status, req.params.id]);
+  await logActivity(db, req.params.id, req.user.id, 'status', `changed status to ${status}`);
   const { rows: full } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [req.params.id]);
   res.json({ project: full[0] });
 }));
@@ -162,6 +209,7 @@ router.patch('/:id/members', requireAuth, wrap(async (req, res) => {
         [req.params.id, empId]
       );
     }
+    await logActivity(client, req.params.id, req.user.id, 'members', 'updated the team members');
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
