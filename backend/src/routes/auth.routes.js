@@ -7,13 +7,19 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Slow down brute-force attempts against the login endpoint specifically.
+// Slow brute-force attempts against a single account. Keyed by the login
+// identifier (email/name/code) rather than IP, so an office behind one shared
+// public IP (NAT) doesn't collectively trip a per-IP limit when everyone signs
+// in in the morning. Per-account guessing is still bounded here, and the DB
+// lockout (5 wrong tries -> 15-min lock, below) is the primary defence.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per IP per window
+  max: 30, // attempts per account per window
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts. Please try again later.' },
+  keyGenerator: (req) =>
+    req.body && req.body.email ? 'acct:' + String(req.body.email).toLowerCase().trim() : req.ip,
+  message: { error: 'Too many login attempts for this account. Please try again in a few minutes.' },
 });
 
 const MAX_FAILED_ATTEMPTS = 5;

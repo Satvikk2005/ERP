@@ -40,14 +40,19 @@ app.use(
   })
 );
 
-// Generic API-wide rate limit as a safety net (login has its own stricter limit)
+// Generic API-wide rate limit as a safety net (login has its own stricter limit).
+// Keyed by the caller's bearer token when signed in, else by IP. This matters
+// because a whole office often shares one public IP (NAT) — keying purely by IP
+// would make ~60 employees share a single budget and throttle each other. Each
+// signed-in user now gets their own budget regardless of shared IP.
 app.use(
   '/api',
   rateLimit({
     windowMs: 60 * 1000,
-    max: 120,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => (req.headers.authorization ? 'tok:' + req.headers.authorization : req.ip),
   })
 );
 
