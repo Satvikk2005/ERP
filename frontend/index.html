@@ -88,6 +88,10 @@
         .btn-ghost:hover { background: var(--track); }
         .btn-ink { background: var(--ink); color: #fff; }
         .btn-ink:hover { background: #1c1812; }
+        .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+        .btn-danger-solid { background: var(--red); color: #fff; }
+        .btn-danger-solid:hover { background: #a8474a; }
         .btn:disabled { opacity: .55; cursor: default; }
 
         .page { padding: 26px 28px 48px; max-width: 1180px; width: 100%; margin: 0 auto; }
@@ -1153,6 +1157,7 @@
             const email = data.employee.email || dir.email || '—';
             const canAssign = canManageUsers() && isInternEmp(emp);
             const canReset = canManageUsers() && (isAdmin() || emp.access_role === 'employee');
+            const canDelete = isAdmin() && emp.id !== CURRENT_USER.id;
             const historyHtml = !history.length ?
                 '<div class="no-entries">No work updates submitted yet.</div>' :
                 '<div class="history-list">' + history.map(e => `
@@ -1170,6 +1175,7 @@
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
                         ${canReset ? '<button class="btn btn-ghost" id="reset-pw">Reset password</button>' : ''}
                         ${canAssign ? '<button class="btn btn-primary" id="open-assign">Assign task</button>' : ''}
+                        ${canDelete ? '<button class="btn btn-danger" id="delete-user">Delete user</button>' : ''}
                         <div class="panel-score">
                             <div class="num">${stats.score}<span style="font-size:15px;color:var(--ink-soft);">/100</span></div>
                             <span class="label ${stats.label.cls}">${stats.label.text}</span>
@@ -1196,6 +1202,49 @@
             if (canReset) {
                 document.getElementById('reset-pw').onclick = () => resetEmployeePassword({ id: emp.id, name: emp.name, email });
             }
+            if (canDelete) {
+                document.getElementById('delete-user').onclick = () => openDeleteUserModal(emp);
+            }
+        }
+
+        // Permanent deletion (admin only) — guarded by a type-to-confirm modal
+        // because it erases the person and all their data irreversibly.
+        function openDeleteUserModal(emp) {
+            openModal(`
+                <div class="modal-head"><h3 class="serif">Delete user</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <p style="font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:8px;">
+                        This permanently erases <b>${esc(emp.name)}</b> (${esc(emp.employee_code)}) and everything tied to them:
+                        their login, work updates, project memberships and assigned tasks. Any project they
+                        <b>manage</b> is kept and handed to you. <b>This cannot be undone.</b>
+                    </p>
+                    <div class="field"><label>Type <b>DELETE</b> to confirm</label><input type="text" id="del-confirm" placeholder="DELETE" autocomplete="off"></div>
+                    <div class="form-error hidden" id="del-err"></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button class="btn btn-danger-solid" id="del-go">Delete permanently</button>
+                    </div>
+                </div>`);
+            const go = document.getElementById('del-go');
+            const input = document.getElementById('del-confirm');
+            input.oninput = () => { go.disabled = input.value.trim().toUpperCase() !== 'DELETE'; };
+            go.disabled = true;
+            go.onclick = async () => {
+                const err = document.getElementById('del-err'); err.classList.add('hidden');
+                go.disabled = true; go.textContent = 'Deleting…';
+                try {
+                    await api('/api/employees/' + emp.id, { method: 'DELETE' });
+                    closeModal();
+                    usersSelected = null;
+                    document.getElementById('users-panel').innerHTML = '<div class="empty-state"><div class="big"></div>Select an employee to view their profile and work updates.</div>';
+                    // refresh directory everywhere
+                    try { const r = await api('/api/employees'); EMPLOYEES = r.employees; DEPARTMENTS = [...new Set(r.employees.map(x => x.department))].sort(); populateDeptFilters(); } catch (e) {}
+                    loadUsers();
+                } catch (e) {
+                    err.textContent = e.message; err.classList.remove('hidden');
+                    go.disabled = false; go.textContent = 'Delete permanently';
+                }
+            };
         }
 
         // Task-assignment snippet, opened from the "Assign task" button on an

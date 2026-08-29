@@ -69,12 +69,42 @@ router.post('/:id/reset-password', requireAuth, requireRole('manager', 'admin'),
 });
 
 // PATCH /api/employees/:id/status — admin only: activate/deactivate an account
-// (use this instead of deleting people when they leave the company).
+// (a softer alternative to deletion when someone leaves the company).
 router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
   const { isActive } = req.body || {};
   const { rowCount } = await db.query('UPDATE employees SET is_active = $1 WHERE id = $2', [!!isActive, req.params.id]);
   if (!rowCount) return res.status(404).json({ error: 'Employee not found.' });
   res.json({ ok: true });
+});
+
+// DELETE /api/employees/:id — admin only: permanently erase a user and all of
+// their personal data (work entries, project memberships, and tasks assigned to
+// them all cascade away; audit rows and task-assigner links null out). Company
+// projects they MANAGE are not destroyed — ownership is reassigned to the acting
+// admin first, so shared work survives. Irreversible.
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  const targetId = Number(req.params.id);
+  if (targetId === req.user.id) {
+    return res.status(400).json({ error: 'You cannot delete your own account.' });
+  }
+  const { rows } = await db.query('SELECT id, name FROM employees WHERE id = $1', [targetId]);
+  if (!rows[0]) return res.status(404).json({ error: 'Employee not found.' });
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Keep managed projects alive by handing them to the admin doing the delete.
+    await client.query('UPDATE projects SET manager_id = $1, updated_at = now() WHERE manager_id = $2', [req.user.id, targetId]);
+    // Remove the person; FKs cascade their entries, memberships and tasks.
+    await client.query('DELETE FROM employees WHERE id = $1', [targetId]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+  res.json({ ok: true, name: rows[0].name });
 });
 
 module.exports = router;
