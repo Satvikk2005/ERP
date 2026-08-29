@@ -67,7 +67,7 @@ const EMPLOYEES = [
   { code: 'EMP-056', name: 'Arohon', dept: 'Marketing', role: 'Digital Marketing Intern' },
 ];
 
-const EMAIL_DOMAIN = process.env.SEED_EMAIL_DOMAIN || 'yourcompany.com';
+const EMAIL_DOMAIN = process.env.SEED_EMAIL_DOMAIN || 'accescoliving.com';
 
 function slugEmail(name, code) {
   const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
