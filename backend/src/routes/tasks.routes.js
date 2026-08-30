@@ -46,13 +46,26 @@ router.get('/mine', requireAuth, wrap(async (req, res) => {
   res.json({ tasks: rows });
 }));
 
-// GET /api/tasks?projectId= — tasks within a project (members + managers/admins).
+// GET /api/tasks?projectId= — tasks within a project.
+// Admins, managers and the project's manager (the "leader") see every task in
+// the project. A plain member sees only the tasks assigned to them — normal
+// employees never see other people's tasks under a project.
 router.get('/', requireAuth, wrap(async (req, res) => {
   const projectId = Number(req.query.projectId);
   if (!Number.isInteger(projectId)) return res.status(400).json({ error: 'projectId is required.' });
   const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
-  if (!priv && !(await isMember(db, projectId, req.user.id))) {
+  const mgr = await projectManagerId(db, projectId);
+  if (mgr == null) return res.status(404).json({ error: 'Project not found.' });
+  const isLeader = mgr === req.user.id;
+  const seesAll = priv || isLeader;
+  if (!seesAll && !(await isMember(db, projectId, req.user.id))) {
     return res.status(403).json({ error: 'Not allowed.' });
+  }
+  const params = [projectId];
+  let scope = '';
+  if (!seesAll) {
+    params.push(req.user.id);
+    scope = ` AND t.assignee_id = $${params.length}`;
   }
   const { rows } = await db.query(
     `SELECT t.id, t.title, t.details, t.status, t.task_date, t.assignee_id,
@@ -62,11 +75,11 @@ router.get('/', requireAuth, wrap(async (req, res) => {
      FROM tasks t
      LEFT JOIN employees a ON a.id = t.assignee_id
      LEFT JOIN employees e ON e.id = t.assigned_by
-     WHERE t.project_id = $1
+     WHERE t.project_id = $1${scope}
      ORDER BY (t.status = 'done'), t.created_at`,
-    [projectId]
+    params
   );
-  res.json({ tasks: rows });
+  res.json({ tasks: rows, canManage: seesAll });
 }));
 
 // POST /api/tasks — the project manager (or an admin) assigns a task to a member
@@ -100,21 +113,29 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   res.status(201).json({ task: { ...rows[0], assignee_name: who[0] ? who[0].name : null } });
 }));
 
-// POST /api/tasks/:id/submit — the assignee reports work done on the task
-// (text + optional document). Also appended to their daily work entry so the
+// POST /api/tasks/:id/submit — post a work-update comment on the task
+// (text + optional document). Anyone on the project (the assignee, the project
+// leader, a manager or admin) can comment; work updates now live in the task's
+// comment thread. Still mirrored into the author's daily work entry so the
 // personal report / performance scores keep reflecting activity.
 router.post('/:id/submit', requireAuth, wrap(async (req, res) => {
   const { body, attachmentNote } = req.body || {};
   if (!body || !body.trim()) return res.status(400).json({ error: 'Describe the work you did.' });
 
   const { rows } = await db.query(
-    `SELECT t.id, t.title, t.assignee_id, t.project_id FROM tasks t WHERE t.id = $1`,
+    `SELECT t.id, t.title, t.assignee_id, t.project_id, p.manager_id
+       FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.id = $1`,
     [req.params.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'Task not found.' });
   const task = rows[0];
-  if (task.assignee_id !== req.user.id) {
-    return res.status(403).json({ error: 'You can only submit work on tasks assigned to you.' });
+  const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
+  const allowed = priv
+    || task.assignee_id === req.user.id
+    || task.manager_id === req.user.id
+    || (await isMember(db, task.project_id, req.user.id));
+  if (!allowed) {
+    return res.status(403).json({ error: 'Only members of this project can comment on the task.' });
   }
 
   const client = await db.pool.connect();

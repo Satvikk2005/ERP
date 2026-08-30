@@ -377,6 +377,65 @@
         .assigned-row .st { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
         .assigned-row .st.pending { background: var(--warn-soft); color: var(--warn); }
         .assigned-row .st.done { background: var(--green-soft); color: var(--green); }
+
+        /* ── all-projects table (Zoho-style listing) ── */
+        .ptable { background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+        .ptable .pt-scroll { overflow-x: auto; }
+        .ptable table { width: 100%; border-collapse: collapse; min-width: 720px; }
+        .ptable th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft);
+            font-weight: 700; padding: 13px 16px; background: var(--bg); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .ptable td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .ptable tr:last-child td { border-bottom: none; }
+        .ptable tbody tr { cursor: pointer; }
+        .ptable tbody tr:hover { background: var(--bg); }
+        .ptable .pt-id { color: var(--ink-soft); font-size: 12px; }
+        .ptable .pt-name { font-weight: 600; color: var(--ink); }
+        .ptable .pt-owner { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+
+        /* ── task detail drawer (right slide-in) ── */
+        #drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(43,38,32,.4); z-index: 2100; }
+        #drawer-backdrop.open { display: block; }
+        .drawer { position: fixed; top: 0; right: 0; height: 100vh; width: 480px; max-width: 100vw; background: var(--card);
+            border-left: 1px solid var(--border); box-shadow: -18px 0 48px rgba(60,45,10,.18); z-index: 2101;
+            transform: translateX(100%); transition: transform .24s ease; display: flex; flex-direction: column; }
+        #drawer-backdrop.open .drawer { transform: translateX(0); }
+        .dw-head { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+        .dw-head .dw-title { font-size: 19px; font-weight: 600; line-height: 1.3; }
+        .dw-head .dw-proj { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+        .dw-head .x { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--ink-soft); line-height: 1; }
+        .dw-head .x:hover { color: var(--red); }
+        .dw-body { padding: 18px 22px 24px; overflow-y: auto; flex: 1; }
+        .dw-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+        .dw-meta .cell { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+        .dw-meta .k { font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+        .dw-meta .v { font-size: 13px; font-weight: 600; margin-top: 3px; }
+        .dw-details { font-size: 13.5px; line-height: 1.6; color: var(--ink); background: var(--bg); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 14px; margin-bottom: 18px; }
+        .dw-status-row { display: flex; gap: 8px; margin-bottom: 18px; }
+        .dw-status-row button { flex: 1; border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--ink-soft); }
+        .dw-status-row button.active.done { background: var(--green); color: #fff; border-color: transparent; }
+        .dw-status-row button.active.pending { background: var(--warn); color: #fff; border-color: transparent; }
+        .dw-status-row button:disabled { opacity: .55; cursor: default; }
+        .cmt-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+        .cmt { display: flex; gap: 10px; }
+        .cmt .avatar { margin-top: 2px; }
+        .cmt .cmt-main { flex: 1; min-width: 0; }
+        .cmt .cmt-top { display: flex; align-items: baseline; gap: 8px; }
+        .cmt .cmt-author { font-size: 13px; font-weight: 600; }
+        .cmt .cmt-when { font-size: 11px; color: var(--ink-soft); }
+        .cmt .cmt-body { font-size: 13.5px; line-height: 1.55; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+        .cmt .cmt-attach { font-size: 11.5px; color: var(--blue); margin-top: 4px; }
+        .cmt-empty { color: var(--ink-soft); font-size: 13px; text-align: center; padding: 18px 0; background: var(--bg); border-radius: 10px; }
+        .dw-compose { border-top: 1px solid var(--border); padding: 16px 22px; background: var(--card); }
+        .dw-compose textarea { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px;
+            padding: 10px 12px; font-size: 13.5px; color: var(--ink); outline: none; min-height: 60px; resize: vertical; }
+        .dw-compose textarea:focus, .dw-compose input:focus { border-color: var(--brand); }
+        .dw-compose input[type=text] { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px;
+            padding: 9px 12px; font-size: 13px; color: var(--ink); outline: none; margin-top: 8px; }
+        .dw-compose-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .dw-compose-actions .btn { flex-shrink: 0; }
+        @media (max-width: 520px) { .drawer { width: 100vw; } .dw-meta { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -415,6 +474,7 @@
                 <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Accesco ERP</div>
                 <nav class="sb-nav">
                     <div class="sb-link active" data-view="home"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> Home</div>
+                    <div class="sb-link hidden" data-view="projects" id="nav-projects"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Projects</div>
                     <div class="sb-link hidden" data-view="performance" id="nav-perf"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="12" width="3.2" height="6" rx="1"/><rect x="12.5" y="8" width="3.2" height="10" rx="1"/><rect x="18" y="5" width="3.2" height="13" rx="1"/></svg> Performance</div>
                     <div class="sb-link hidden" data-view="users" id="nav-users"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.6-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.2A3 3 0 0 1 16 11"/><path d="M15.5 15c2.6.3 4.5 2.3 4.5 5"/></svg> Users</div>
                 </nav>
@@ -455,6 +515,18 @@
                             <div id="myproj-container"></div>
                         </div>
                     </div>
+                </div>
+
+                <!-- PROJECTS — all projects (admins / managers), Zoho-style list -->
+                <div class="page hidden" id="view-projects">
+                    <div class="toolbar">
+                        <div class="section-title">All projects across the company</div>
+                        <div class="filter">
+                            <label>Department</label>
+                            <select id="projects-dept-filter"><option value="all">All Departments</option></select>
+                        </div>
+                    </div>
+                    <div id="projects-table"></div>
                 </div>
 
                 <!-- PROJECT — full page -->
@@ -502,12 +574,18 @@
         <div class="modal" id="modal"></div>
     </div>
 
+    <!-- ════════ TASK DRAWER (right slide-in) ════════ -->
+    <div id="drawer-backdrop">
+        <div class="drawer" id="drawer"></div>
+    </div>
+
     <script>
         const API = window.WORKTRACK_API_BASE || '';
         let TOKEN = sessionStorage.getItem('wt_token') || null;
         let CURRENT_USER = null;
         let EMPLOYEES = [];          // full directory {id,name,employee_code,department,job_title}
         let DEPARTMENTS = [];
+        let CURRENT_PROJECT = null;  // the project currently open in the project view (or null)
 
         async function api(path, options = {}) {
             const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
@@ -592,9 +670,10 @@
             document.getElementById('sb-name').textContent = CURRENT_USER.name;
             document.getElementById('sb-role').textContent =
                 CURRENT_USER.department + ' · ' + CURRENT_USER.accessRole;
-            // "Users" and "Performance" are for people above interns.
+            // "Projects", "Users" and "Performance" are for people above interns.
             document.getElementById('nav-users').classList.toggle('hidden', !canManageUsers());
             document.getElementById('nav-perf').classList.toggle('hidden', !canManageUsers());
+            document.getElementById('nav-projects').classList.toggle('hidden', !canManageUsers());
             try {
                 const { employees } = await api('/api/employees');
                 EMPLOYEES = employees;
@@ -611,15 +690,19 @@
         document.getElementById('menu-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('open');
 
         function switchView(view) {
-            if ((view === 'users' || view === 'performance') && !canManageUsers()) view = 'home';
-            const highlight = view === 'project' ? 'home' : view;
+            if ((view === 'users' || view === 'performance' || view === 'projects') && !canManageUsers()) view = 'home';
+            // "project" (a single open project) highlights the Projects tab for
+            // managers/admins, and Home for everyone else (their landing page).
+            const highlight = view === 'project' ? (canManageUsers() ? 'projects' : 'home') : view;
             document.querySelectorAll('.sb-link').forEach(l => l.classList.toggle('active', l.dataset.view === highlight));
             document.getElementById('view-home').classList.toggle('hidden', view !== 'home');
+            document.getElementById('view-projects').classList.toggle('hidden', view !== 'projects');
             document.getElementById('view-project').classList.toggle('hidden', view !== 'project');
             document.getElementById('view-users').classList.toggle('hidden', view !== 'users');
             document.getElementById('view-perf').classList.toggle('hidden', view !== 'performance');
             const titles = {
                 home: ['Home', 'Your tasks and projects'],
+                projects: ['Projects', 'Every project across the company'],
                 project: ['Project', ''],
                 users: ['Users', 'Employee directory & work updates'],
                 performance: ['Performance', 'Who is actually working — engagement scores'],
@@ -628,9 +711,33 @@
                 document.getElementById('page-title').textContent = titles[view][0];
                 document.getElementById('page-sub').textContent = titles[view][1];
             }
+            if (view !== 'project') CURRENT_PROJECT = null;
+            updateTopbarButton(view);
             if (view === 'home') loadHome();
+            if (view === 'projects') loadProjectsList();
             if (view === 'users') loadUsers();
             if (view === 'performance') loadPerformance();
+        }
+
+        // The top-right button is context-aware: on a single open project it
+        // becomes "+ Add Task" (for whoever can manage that project); otherwise
+        // it is "+ New Project". Hidden when the current context has no action.
+        function updateTopbarButton(view) {
+            const btn = document.getElementById('new-project-btn');
+            if (view === 'project' && CURRENT_PROJECT) {
+                const canManage = isAdmin() || CURRENT_PROJECT.manager_id === CURRENT_USER.id;
+                if (canManage) {
+                    btn.classList.remove('hidden');
+                    btn.textContent = '+ Add Task';
+                    btn.onclick = () => openAddTaskModal(CURRENT_PROJECT);
+                } else {
+                    btn.classList.add('hidden');
+                }
+                return;
+            }
+            btn.classList.remove('hidden');
+            btn.textContent = '+ New Project';
+            btn.onclick = openNewProjectModal;
         }
 
         // ════════ THEME (light / dark) ════════
@@ -687,53 +794,128 @@
                 return;
             }
             box.innerHTML = tasks.map(t => `
-                <div class="mt-row">
+                <div class="mt-row" data-task="${t.id}" style="cursor:pointer;">
                     <div class="mt-main">
                         <div class="mt-title ${t.status === 'done' ? 'done' : ''}">${esc(t.title)}</div>
-                        <div class="mt-sub">${t.project_name ? esc(t.project_name) : 'General'}${t.task_date ? ' · due ' + fmtDay(t.task_date) : ''}${t.my_submissions ? ' · ' + t.my_submissions + ' submission' + (t.my_submissions == 1 ? '' : 's') : ''}${t.assigned_by_name ? ' · from ' + esc(t.assigned_by_name) : ''}</div>
+                        <div class="mt-sub">${t.project_name ? esc(t.project_name) : 'General'}${t.task_date ? ' · due ' + fmtDay(t.task_date) : ''}${t.my_submissions ? ' · ' + t.my_submissions + ' update' + (t.my_submissions == 1 ? '' : 's') : ''}${t.assigned_by_name ? ' · from ' + esc(t.assigned_by_name) : ''}</div>
                     </div>
                     <div class="mt-right">
                         <span class="pill ${t.status === 'done' ? 'open' : 'paused'}" style="${t.status === 'done' ? 'background:var(--green-soft);color:var(--green)' : ''}">${t.status === 'done' ? 'done' : 'open'}</span>
-                        <button class="btn btn-primary" data-submit="${t.id}">Submit</button>
                     </div>
                 </div>`).join('');
-            box.querySelectorAll('[data-submit]').forEach(btn => {
-                const t = tasks.find(x => x.id == btn.dataset.submit);
-                btn.onclick = () => openTaskSubmitModal(t);
+            box.querySelectorAll('.mt-row[data-task]').forEach(row => {
+                row.onclick = () => {
+                    const t = tasks.find(x => x.id == row.dataset.task);
+                    openTaskDrawer({ ...t, assignee_name: CURRENT_USER.name },
+                        { projectName: t.project_name, canManageTask: true, onChange: loadMyTasks });
+                };
             });
         }
 
-        function openTaskSubmitModal(task) {
-            openModal(`
-                <div class="modal-head">
-                    <div><h3 class="serif">Submit work</h3>
-                    <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(task.title)}${task.project_name ? ' · ' + esc(task.project_name) : ''}</div></div>
-                    <button class="x" onclick="closeModal()">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="field"><label>What did you do on this task?</label><textarea class="field-ta" id="sub-body" placeholder="Describe the work you completed"></textarea></div>
-                    <div class="field"><label>Related document (optional)</label><input type="text" id="sub-doc" placeholder="File name or link, e.g. report.pdf"></div>
-                    <div class="form-error hidden" id="sub-err"></div>
-                    <div class="modal-actions">
-                        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-                        <button class="btn btn-primary" id="sub-go">Submit</button>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);"><input type="checkbox" id="sub-done" style="width:15px;height:15px;accent-color:var(--brand);"> mark done</label>
+        // ════════ TASK DRAWER (details + comments / work updates) ════════
+        // Right-side slide-in panel for one task. Shows the task's details and a
+        // comment thread where anyone on the project posts their work updates
+        // (each comment also flows into the author's personal report). ctx:
+        //   { projectName, canManageTask, onChange }
+        const drawerBackdrop = document.getElementById('drawer-backdrop');
+        const drawerEl = document.getElementById('drawer');
+        function closeDrawer() { drawerBackdrop.classList.remove('open'); drawerEl.innerHTML = ''; }
+        drawerBackdrop.addEventListener('click', e => { if (e.target === drawerBackdrop) closeDrawer(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawerBackdrop.classList.contains('open')) closeDrawer(); });
+
+        function openTaskDrawer(task, ctx = {}) {
+            const projName = ctx.projectName || task.project_name || '';
+            const isDone = task.status === 'done';
+            const canStatus = !!ctx.canManageTask;
+            drawerEl.innerHTML = `
+                <div class="dw-head">
+                    <div>
+                        <div class="dw-title">${esc(task.title)}</div>
+                        ${projName ? `<div class="dw-proj">${esc(projName)}</div>` : ''}
                     </div>
-                </div>`);
-            document.getElementById('sub-go').onclick = async () => {
-                const err = document.getElementById('sub-err'); err.classList.add('hidden');
-                const body = document.getElementById('sub-body').value.trim();
-                if (!body) { err.textContent = 'Describe the work you did.'; err.classList.remove('hidden'); return; }
-                const btn = document.getElementById('sub-go'); btn.disabled = true; btn.textContent = 'Submitting…';
+                    <button class="x" id="dw-close">✕</button>
+                </div>
+                <div class="dw-body">
+                    <div class="dw-status-row">
+                        <button class="${!isDone ? 'active pending' : ''}" data-set="pending" ${canStatus ? '' : 'disabled'}>Open</button>
+                        <button class="${isDone ? 'active done' : ''}" data-set="done" ${canStatus ? '' : 'disabled'}>Done</button>
+                    </div>
+                    <div class="dw-meta">
+                        <div class="cell"><div class="k">Owner</div><div class="v">${task.assignee_name ? esc(task.assignee_name) : '—'}</div></div>
+                        <div class="cell"><div class="k">Assigned by</div><div class="v">${task.assigned_by_name ? esc(task.assigned_by_name) : '—'}</div></div>
+                        <div class="cell"><div class="k">Due date</div><div class="v">${task.task_date ? fmtDay(task.task_date) : '—'}</div></div>
+                        <div class="cell"><div class="k">Status</div><div class="v">${isDone ? 'Done' : 'Open'}</div></div>
+                    </div>
+                    ${task.details ? `<div class="dw-details">${esc(task.details)}</div>` : ''}
+                    <div class="section-title" style="margin-bottom:10px;">Comments &amp; work updates</div>
+                    <div id="dw-comments"><div class="cmt-empty">Loading…</div></div>
+                </div>
+                <div class="dw-compose">
+                    <textarea id="dw-body" placeholder="Write your work update…"></textarea>
+                    <input type="text" id="dw-doc" placeholder="Related document / link (optional)">
+                    <div class="dw-compose-actions">
+                        <button class="btn btn-primary" id="dw-post">Post update</button>
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);"><input type="checkbox" id="dw-done" style="width:15px;height:15px;accent-color:var(--brand);" ${isDone ? 'checked disabled' : ''}> mark done</label>
+                        <span class="form-error hidden" id="dw-err" style="margin:0;flex:1;"></span>
+                    </div>
+                </div>`;
+            drawerBackdrop.classList.add('open');
+            document.getElementById('dw-close').onclick = closeDrawer;
+
+            // status toggle
+            drawerEl.querySelectorAll('.dw-status-row button').forEach(btn => {
+                if (!canStatus) return;
+                btn.onclick = async () => {
+                    const set = btn.dataset.set;
+                    if ((set === 'done') === isDone) return;
+                    try {
+                        await api('/api/tasks/' + task.id, { method: 'PATCH', body: JSON.stringify({ status: set }) });
+                        if (ctx.onChange) ctx.onChange();
+                        openTaskDrawer({ ...task, status: set }, ctx);   // re-render with new status
+                    } catch (e) { alert(e.message); }
+                };
+            });
+
+            loadTaskComments(task.id);
+            document.getElementById('dw-post').onclick = async () => {
+                const err = document.getElementById('dw-err'); err.classList.add('hidden');
+                const body = document.getElementById('dw-body').value.trim();
+                if (!body) { err.textContent = 'Write your update.'; err.classList.remove('hidden'); return; }
+                const btn = document.getElementById('dw-post'); btn.disabled = true; btn.textContent = 'Posting…';
                 try {
                     await api('/api/tasks/' + task.id + '/submit', { method: 'POST', body: JSON.stringify({
-                        body, attachmentNote: document.getElementById('sub-doc').value.trim() }) });
-                    if (document.getElementById('sub-done').checked) {
-                        try { await api('/api/tasks/' + task.id, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) }); } catch (e) {}
+                        body, attachmentNote: document.getElementById('dw-doc').value.trim() }) });
+                    let markedDone = false;
+                    const doneCb = document.getElementById('dw-done');
+                    if (doneCb && doneCb.checked && !doneCb.disabled) {
+                        try { await api('/api/tasks/' + task.id, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) }); markedDone = true; } catch (e) {}
                     }
-                    closeModal(); loadMyTasks();
-                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Submit'; }
+                    if (ctx.onChange) ctx.onChange();
+                    if (markedDone) openTaskDrawer({ ...task, status: 'done' }, ctx);
+                    else { document.getElementById('dw-body').value = ''; document.getElementById('dw-doc').value = ''; loadTaskComments(task.id); }
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Post update'; }
             };
+        }
+
+        async function loadTaskComments(taskId) {
+            const box = document.getElementById('dw-comments');
+            if (!box) return;
+            let comments = [];
+            try { comments = (await api('/api/tasks/' + taskId + '/submissions')).submissions; }
+            catch (e) { box.innerHTML = `<div class="cmt-empty">${esc(e.message)}</div>`; return; }
+            if (!comments.length) { box.innerHTML = '<div class="cmt-empty">No updates yet. Be the first to post one.</div>'; return; }
+            box.innerHTML = '<div class="cmt-list">' + comments.map(c => `
+                <div class="cmt">
+                    <span class="avatar">${initials(c.author || '?')}</span>
+                    <div class="cmt-main">
+                        <div class="cmt-top">
+                            <span class="cmt-author">${esc(c.author || 'Someone')}</span>
+                            <span class="cmt-when">${new Date(c.created_at).toLocaleString()}</span>
+                        </div>
+                        <div class="cmt-body">${esc(c.body)}</div>
+                        ${c.attachment_note ? `<div class="cmt-attach">Attachment: ${esc(c.attachment_note)}</div>` : ''}
+                    </div>
+                </div>`).join('') + '</div>';
         }
 
         async function loadMyProjects() {
@@ -746,15 +928,18 @@
         }
 
         function populateDeptFilters() {
-            ['users-dept-filter', 'perf-dept-filter'].forEach(id => {
+            ['users-dept-filter', 'perf-dept-filter', 'projects-dept-filter'].forEach(id => {
                 const sel = document.getElementById(id);
+                const keep = sel.value;
                 sel.innerHTML = '<option value="all">All Departments</option>' +
                     DEPARTMENTS.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+                if (keep) sel.value = keep;
             });
         }
         document.getElementById('users-dept-filter').onchange = loadUsers;
         document.getElementById('users-search').oninput = renderUsersList;
         document.getElementById('perf-dept-filter').onchange = loadPerformance;
+        document.getElementById('projects-dept-filter').onchange = loadProjectsList;
         document.getElementById('add-emp-btn').onclick = openAddEmployeeModal;
 
         // ════════ ADD EMPLOYEE / RESET PASSWORD (managers/admins) ════════
@@ -879,6 +1064,41 @@
                 </div>`).join('') + '</div>';
             container.querySelectorAll('.proj-card').forEach(card => {
                 card.onclick = () => openProjectDetail(card.dataset.id);
+            });
+        }
+
+        // ════════ PROJECTS (all projects — admins / managers) ════════
+        async function loadProjectsList() {
+            const box = document.getElementById('projects-table');
+            box.innerHTML = '<div class="muted" style="padding:10px 2px;">Loading…</div>';
+            const dept = document.getElementById('projects-dept-filter').value;
+            let projects = [];
+            try {
+                projects = (await api('/api/projects' + (dept !== 'all' ? '?department=' + encodeURIComponent(dept) : ''))).projects;
+            } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; return; }
+            if (!projects.length) {
+                box.innerHTML = '<div class="empty-state"><div class="big"></div>No projects yet. Use “+ New Project” to create one.</div>';
+                return;
+            }
+            box.innerHTML = `<div class="ptable"><div class="pt-scroll"><table>
+                <thead><tr>
+                    <th>ID</th><th>Project Name</th><th>Owner</th><th>Status</th>
+                    <th>Tasks</th><th>Team</th><th>Start Date</th><th>End Date</th>
+                </tr></thead>
+                <tbody>${projects.map(p => `
+                    <tr data-id="${p.id}">
+                        <td class="pt-id">#${p.id}</td>
+                        <td><div class="pt-name">${esc(p.name)}</div></td>
+                        <td><div class="pt-owner"><span class="avatar">${initials(p.manager_name)}</span>${esc(p.manager_name)}</div></td>
+                        <td><span class="pill ${p.status}">${p.status}</span></td>
+                        <td>${p.task_count}</td>
+                        <td>${p.member_count}</td>
+                        <td class="muted">${p.start_date ? fmtDay(p.start_date) : '—'}</td>
+                        <td class="muted">${p.end_date ? fmtDay(p.end_date) : '—'}</td>
+                    </tr>`).join('')}
+                </tbody></table></div></div>`;
+            box.querySelectorAll('tbody tr').forEach(tr => {
+                tr.onclick = () => openProjectDetail(tr.dataset.id);
             });
         }
 
@@ -1012,10 +1232,13 @@
         }
 
         function renderProjectDetail(p) {
+            CURRENT_PROJECT = p;
+            updateTopbarButton('project');
             const canManage = isAdmin() || p.manager_id === CURRENT_USER.id;
+            const backTo = canManageUsers() ? 'projects' : 'home';
             const members = (p.members || []);
             document.getElementById('view-project').innerHTML = `
-                <button class="back-link" id="pp-back">‹ Back to Home</button>
+                <button class="back-link" id="pp-back">‹ Back to ${backTo === 'projects' ? 'Projects' : 'Home'}</button>
                 <div class="pp-card">
                     <div class="pp-head">
                         <div>
@@ -1038,7 +1261,7 @@
 
                     <div class="toolbar" style="margin:6px 0 8px;">
                         <div class="section-title">Tasks</div>
-                        ${canManage ? '<button class="btn btn-primary" id="pd-add-task">+ Add Task</button>' : ''}
+                        ${canManage ? '<button class="btn btn-ghost" id="pd-add-task">+ Add Task</button>' : ''}
                     </div>
                     <div id="pd-tasks"><div class="tb-empty">Loading tasks…</div></div>
 
@@ -1056,7 +1279,7 @@
                     <div class="form-error hidden" id="pd-err"></div>
                 </div>`;
 
-            document.getElementById('pp-back').onclick = () => switchView('home');
+            document.getElementById('pp-back').onclick = () => switchView(backTo);
             document.querySelectorAll('#view-project .pd-status button').forEach(btn => {
                 if (!canManage) return;
                 btn.onclick = async () => {
@@ -1086,19 +1309,27 @@
             try { tasks = (await api('/api/tasks?projectId=' + p.id)).tasks; }
             catch (e) { box.innerHTML = `<div class="tb-empty">${esc(e.message)}</div>`; return; }
             if (!tasks.length) {
-                box.innerHTML = '<div class="tb-empty">No tasks yet.' + (canManage ? ' Use “+ Add Task” to assign work to a member.' : '') + '</div>';
+                box.innerHTML = '<div class="tb-empty">' + (canManage ? 'No tasks yet. Use “+ Add Task” to assign work to a member.' : 'No tasks assigned to you in this project yet.') + '</div>';
                 return;
             }
             box.innerHTML = `<div class="tb">
                 <div class="tb-head"><div>Task</div><div>Owner</div><div>Status</div><div>Due</div></div>
                 ${tasks.map(t => `
-                    <div class="tb-row">
+                    <div class="tb-row" data-task="${t.id}" style="cursor:pointer;">
                         <div class="tt">${esc(t.title)}${t.details ? '<small>' + esc(t.details) + '</small>' : ''}</div>
                         <div>${t.assignee_name ? esc(t.assignee_name) : '<span class="muted">Unassigned</span>'}</div>
                         <div><span class="pill ${t.status === 'done' ? 'open' : 'paused'}" style="${t.status === 'done' ? 'background:var(--green-soft);color:var(--green)' : ''}">${t.status === 'done' ? 'done' : 'open'}</span></div>
                         <div class="muted">${t.task_date ? fmtDay(t.task_date) : '—'}${canManage ? ' <button class="icon-btn" data-del="' + t.id + '" title="Delete task">✕</button>' : ''}</div>
                     </div>`).join('')}
             </div>`;
+            box.querySelectorAll('.tb-row[data-task]').forEach(row => {
+                row.onclick = (e) => {
+                    if (e.target.closest('[data-del]')) return;   // let the delete button handle its own click
+                    const t = tasks.find(x => x.id == row.dataset.task);
+                    openTaskDrawer(t, { projectName: p.name, canManageTask: canManage,
+                        onChange: () => loadProjectTasks(p, canManage) });
+                };
+            });
             if (canManage) box.querySelectorAll('[data-del]').forEach(b => {
                 b.onclick = async () => {
                     if (!confirm('Delete this task?')) return;

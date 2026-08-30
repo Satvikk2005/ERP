@@ -26,6 +26,7 @@ const PROJECT_SELECT = `
          p.manager_id, m.name AS manager_name, m.employee_code AS manager_code,
          p.start_date, p.end_date, p.created_at, p.updated_at,
          COALESCE(mem.member_count, 0) AS member_count,
+         COALESCE((SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id), 0) AS task_count,
          COALESCE(mem.members, '[]'::json) AS members
   FROM projects p
   JOIN employees m ON m.id = p.manager_id
