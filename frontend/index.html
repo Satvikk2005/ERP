@@ -1256,11 +1256,7 @@
                     <p style="font-size:14px;line-height:1.6;color:${p.description ? 'var(--ink)' : 'var(--ink-soft)'};margin-bottom:20px;">${p.description ? esc(p.description) : 'No description provided.'}</p>
                     <div class="pd-meta-grid">
                         <div class="cell"><div class="k">Project Manager</div><div class="v">${esc(p.manager_name)}</div></div>
-                        <div class="cell" id="pd-team-cell" ${canManage ? 'style="cursor:pointer;" title="Click to view and edit members"' : ''}>
-                            <div class="k">Team Size${canManage ? ' <span style="color:var(--brand-deep);font-weight:700;">· Manage</span>' : ''}</div>
-                            <div class="v">${p.member_count} member${p.member_count == 1 ? '' : 's'}</div>
-                        </div>
-                        <div class="cell" style="grid-column:1/-1;"><div class="k">Timeline</div><div class="v">${timelineText(p)}</div></div>
+                        <div class="cell"><div class="k">Timeline</div><div class="v">${timelineText(p)}</div></div>
                     </div>
 
                     <div class="toolbar" style="margin:6px 0 8px;">
@@ -1269,7 +1265,10 @@
                     </div>
                     <div id="pd-tasks"><div class="tb-empty">Loading tasks…</div></div>
 
-                    <div class="section-title" style="margin:20px 0 10px;">Team Members</div>
+                    <div class="toolbar" style="margin:22px 0 10px;">
+                        <div class="section-title">Team Size · ${p.member_count} member${p.member_count == 1 ? '' : 's'}</div>
+                        ${canManage ? '<button class="btn btn-ghost" id="pd-edit-members">Manage Members</button>' : ''}
+                    </div>
                     <div class="member-list">
                         ${members.map(m => `
                             <div class="member-row">
@@ -1279,8 +1278,7 @@
                                 ${m.id === p.manager_id ? '<span class="role-tag">Manager</span>' : ''}
                             </div>`).join('') || '<div class="no-entries">No members assigned.</div>'}
                     </div>
-                    ${canManage ? `<div class="modal-actions" style="justify-content:space-between;">
-                        <button class="btn btn-ghost" id="pd-edit-members">Edit Members</button>
+                    ${canManage ? `<div style="display:flex;justify-content:flex-end;margin-top:24px;">
                         <button class="btn btn-danger" id="pd-delete-project">Delete Project</button>
                     </div>` : ''}
                     <div class="form-error hidden" id="pd-err"></div>
@@ -1303,8 +1301,6 @@
             });
             const editBtn = document.getElementById('pd-edit-members');
             if (editBtn) editBtn.onclick = () => openEditMembers(p);
-            const teamCell = document.getElementById('pd-team-cell');
-            if (teamCell && canManage) teamCell.onclick = () => openEditMembers(p);
             const delProjBtn = document.getElementById('pd-delete-project');
             if (delProjBtn) delProjBtn.onclick = () => openDeleteProjectModal(p);
             document.getElementById('pd-history').onclick = () => openHistoryModal(p);
