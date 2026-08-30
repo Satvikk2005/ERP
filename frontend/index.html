@@ -735,7 +735,8 @@
                 }
                 return;
             }
-            btn.classList.remove('hidden');
+            // Only managers/admins can create projects.
+            btn.classList.toggle('hidden', !canManageUsers());
             btn.textContent = '+ New Project';
             btn.onclick = openNewProjectModal;
         }
@@ -1255,7 +1256,10 @@
                     <p style="font-size:14px;line-height:1.6;color:${p.description ? 'var(--ink)' : 'var(--ink-soft)'};margin-bottom:20px;">${p.description ? esc(p.description) : 'No description provided.'}</p>
                     <div class="pd-meta-grid">
                         <div class="cell"><div class="k">Project Manager</div><div class="v">${esc(p.manager_name)}</div></div>
-                        <div class="cell"><div class="k">Team Size</div><div class="v">${p.member_count} member${p.member_count == 1 ? '' : 's'}</div></div>
+                        <div class="cell" id="pd-team-cell" ${canManage ? 'style="cursor:pointer;" title="Click to view and edit members"' : ''}>
+                            <div class="k">Team Size${canManage ? ' <span style="color:var(--brand-deep);font-weight:700;">· Manage</span>' : ''}</div>
+                            <div class="v">${p.member_count} member${p.member_count == 1 ? '' : 's'}</div>
+                        </div>
                         <div class="cell" style="grid-column:1/-1;"><div class="k">Timeline</div><div class="v">${timelineText(p)}</div></div>
                     </div>
 
@@ -1275,7 +1279,10 @@
                                 ${m.id === p.manager_id ? '<span class="role-tag">Manager</span>' : ''}
                             </div>`).join('') || '<div class="no-entries">No members assigned.</div>'}
                     </div>
-                    ${canManage ? `<div class="modal-actions"><button class="btn btn-ghost" id="pd-edit-members">Edit Members</button></div>` : ''}
+                    ${canManage ? `<div class="modal-actions" style="justify-content:space-between;">
+                        <button class="btn btn-ghost" id="pd-edit-members">Edit Members</button>
+                        <button class="btn btn-danger" id="pd-delete-project">Delete Project</button>
+                    </div>` : ''}
                     <div class="form-error hidden" id="pd-err"></div>
                 </div>`;
 
@@ -1296,6 +1303,10 @@
             });
             const editBtn = document.getElementById('pd-edit-members');
             if (editBtn) editBtn.onclick = () => openEditMembers(p);
+            const teamCell = document.getElementById('pd-team-cell');
+            if (teamCell && canManage) teamCell.onclick = () => openEditMembers(p);
+            const delProjBtn = document.getElementById('pd-delete-project');
+            if (delProjBtn) delProjBtn.onclick = () => openDeleteProjectModal(p);
             document.getElementById('pd-history').onclick = () => openHistoryModal(p);
             const addTaskBtn = document.getElementById('pd-add-task');
             if (addTaskBtn) addTaskBtn.onclick = () => openAddTaskModal(p);
@@ -1414,6 +1425,43 @@
                         method: 'PATCH', body: JSON.stringify({ memberIds: [...selectedMembers] }) })).project;
                     closeModal(); renderProjectDetail(updated);
                 } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
+            };
+        }
+
+        // Delete a whole project (manager or admin) — type-to-confirm because it
+        // irreversibly removes the project, its tasks, memberships and history.
+        function openDeleteProjectModal(p) {
+            openModal(`
+                <div class="modal-head"><h3 class="serif">Delete project</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <p style="font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:8px;">
+                        This permanently deletes <b>${esc(p.name)}</b> and everything inside it:
+                        all its tasks, work-update comments, team memberships and history.
+                        <b>This cannot be undone.</b>
+                    </p>
+                    <div class="field"><label>Type <b>DELETE</b> to confirm</label><input type="text" id="dp-confirm" placeholder="DELETE" autocomplete="off"></div>
+                    <div class="form-error hidden" id="dp-err"></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button class="btn btn-danger-solid" id="dp-go">Delete permanently</button>
+                    </div>
+                </div>`);
+            const go = document.getElementById('dp-go');
+            const input = document.getElementById('dp-confirm');
+            go.disabled = true;
+            input.oninput = () => { go.disabled = input.value.trim().toUpperCase() !== 'DELETE'; };
+            go.onclick = async () => {
+                const err = document.getElementById('dp-err'); err.classList.add('hidden');
+                go.disabled = true; go.textContent = 'Deleting…';
+                try {
+                    await api('/api/projects/' + p.id, { method: 'DELETE' });
+                    closeModal();
+                    CURRENT_PROJECT = null;
+                    switchView(canManageUsers() ? 'projects' : 'home');
+                } catch (e) {
+                    err.textContent = e.message; err.classList.remove('hidden');
+                    go.disabled = false; go.textContent = 'Delete permanently';
+                }
             };
         }
 

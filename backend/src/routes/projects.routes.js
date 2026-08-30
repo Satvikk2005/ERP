@@ -119,9 +119,12 @@ router.get('/:id/history', requireAuth, wrap(async (req, res) => {
   res.json({ history: rows });
 }));
 
-// POST /api/projects — any authenticated employee can start a project; whoever
+// POST /api/projects — only managers/admins can start a project; whoever
 // creates it becomes the project manager automatically.
 router.post('/', requireAuth, wrap(async (req, res) => {
+  if (req.user.accessRole !== 'manager' && req.user.accessRole !== 'admin') {
+    return res.status(403).json({ error: 'Only managers or admins can create projects.' });
+  }
   const { name, description, department, memberIds, startDate, endDate } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: 'Project name is required.' });
   if (!department || !department.trim()) return res.status(400).json({ error: 'Department is required.' });
@@ -220,6 +223,18 @@ router.patch('/:id/members', requireAuth, wrap(async (req, res) => {
   }
   const { rows: full } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [req.params.id]);
   res.json({ project: full[0] });
+}));
+
+// DELETE /api/projects/:id — the project's manager or an admin can permanently
+// delete the project. Its tasks, memberships and activity cascade away.
+router.delete('/:id', requireAuth, wrap(async (req, res) => {
+  const { rows } = await db.query('SELECT manager_id, name FROM projects WHERE id = $1', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Project not found.' });
+  if (rows[0].manager_id !== req.user.id && req.user.accessRole !== 'admin') {
+    return res.status(403).json({ error: 'Only the project manager or an admin can delete this project.' });
+  }
+  await db.query('DELETE FROM projects WHERE id = $1', [req.params.id]);
+  res.json({ ok: true });
 }));
 
 module.exports = router;
