@@ -1299,7 +1299,10 @@
                     <div class="stat-tile"><div class="val">${stats.avgWords}</div><div class="key">Avg words / point</div></div>
                     <div class="stat-tile"><div class="val">${stats.attachRatePct}%</div><div class="key">With evidence</div></div>
                 </div>
-                <div class="section-title" style="margin-bottom:12px;">Work Updates</div>
+                <div class="toolbar" style="margin-bottom:12px;">
+                    <div class="section-title">Work Updates</div>
+                    ${isAdmin() && history.length ? '<button class="btn btn-danger" id="clear-history">Clear history</button>' : ''}
+                </div>
                 ${historyHtml}`;
             if (canReset) {
                 document.getElementById('reset-pw').onclick = () => resetEmployeePassword({ id: emp.id, name: emp.name, email });
@@ -1307,6 +1310,18 @@
             if (canDelete) {
                 document.getElementById('delete-user').onclick = () => openDeleteUserModal(emp);
             }
+            const clearBtn = document.getElementById('clear-history');
+            if (clearBtn) clearBtn.onclick = () => clearUserHistory(emp);
+        }
+
+        // Admin only — permanently wipe an employee's work-update history.
+        async function clearUserHistory(emp) {
+            if (!confirm('Permanently delete ALL work-update history for ' + emp.name + '? This also resets their engagement score and cannot be undone.')) return;
+            try {
+                await api('/api/reports/employees/' + emp.id + '/history', { method: 'DELETE' });
+                renderUserDetail(emp.id);
+                loadUsers();
+            } catch (e) { alert(e.message); }
         }
 
         // Permanent deletion (admin only) — guarded by a type-to-confirm modal

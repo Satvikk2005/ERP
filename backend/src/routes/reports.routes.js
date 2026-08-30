@@ -81,4 +81,24 @@ router.get('/employees/:id', requireAuth, requireRole('manager', 'admin'), async
   res.json({ employee, stats: { ...stats, label: scoreLabel(stats.score) }, history });
 });
 
+// DELETE /api/reports/employees/:id/history — admin only: permanently clear an
+// employee's entire work-update history (their entries in the personal report).
+// This also resets their engagement score, since it's computed from these
+// entries. Irreversible.
+router.delete('/employees/:id/history', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { rows: emp } = await db.query('SELECT employee_code FROM employees WHERE id = $1', [req.params.id]);
+    if (!emp[0]) return res.status(404).json({ error: 'Employee not found.' });
+    const { rowCount } = await db.query('DELETE FROM work_entries WHERE employee_id = $1', [req.params.id]);
+    await db.query(
+      'INSERT INTO audit_log (actor_employee_id, action, target, ip_address) VALUES ($1,$2,$3,$4)',
+      [req.user.id, 'history_cleared', emp[0].employee_code, req.ip]
+    );
+    res.json({ ok: true, deleted: rowCount });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
 module.exports = router;
