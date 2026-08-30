@@ -287,9 +287,21 @@
         .perf-legend { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 12px; color: var(--ink); }
         .perf-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
 
-        /* ── home: My Tasks list ── */
+        /* ── home: KPI tiles + two panels ── */
+        .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+        @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+        .home-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; }
+        .home-panel .hp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .home-panel .hp-head .section-title { margin: 0; }
         .home-section { margin-bottom: 26px; }
         .muted { color: var(--ink-soft); font-size: 12px; }
+        /* project full page */
+        .back-link { background: none; border: none; color: var(--brand-deep); font-weight: 600; cursor: pointer;
+            font-size: 13px; display: inline-flex; align-items: center; gap: 6px; padding: 0; margin-bottom: 14px; }
+        .back-link:hover { text-decoration: underline; }
+        .pp-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 26px; }
+        .pp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .pp-head .pp-title { font-size: 24px; font-weight: 500; }
         .mt-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border);
             border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
         .mt-row .mt-main { min-width: 0; flex: 1; }
@@ -403,7 +415,6 @@
                 <div class="sb-brand"><span class="brand-logo"><img src="logo.png" alt="" onerror="this.onerror=null;this.src='logo.svg'"></span> Accesco ERP</div>
                 <nav class="sb-nav">
                     <div class="sb-link active" data-view="home"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> Home</div>
-                    <div class="sb-link hidden" data-view="allprojects" id="nav-allprojects"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg> All Projects</div>
                     <div class="sb-link hidden" data-view="performance" id="nav-perf"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="12" width="3.2" height="6" rx="1"/><rect x="12.5" y="8" width="3.2" height="10" rx="1"/><rect x="18" y="5" width="3.2" height="13" rx="1"/></svg> Performance</div>
                     <div class="sb-link hidden" data-view="users" id="nav-users"><svg class="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3 2.6-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.2A3 3 0 0 1 16 11"/><path d="M15.5 15c2.6.3 4.5 2.3 4.5 5"/></svg> Users</div>
                 </nav>
@@ -431,30 +442,23 @@
                     </div>
                 </div>
 
-                <!-- HOME — My Tasks + My Projects -->
+                <!-- HOME — KPI tiles + My Tasks / My Projects -->
                 <div class="page" id="view-home">
-                    <div class="home-section">
-                        <div class="toolbar"><div class="section-title">My Tasks</div><span class="muted" id="mytasks-count"></span></div>
-                        <div id="mytasks-container"></div>
-                    </div>
-                    <div class="home-section">
-                        <div class="toolbar"><div class="section-title">My Projects</div></div>
-                        <div id="myproj-container"></div>
+                    <div class="stat-row" id="stat-row"></div>
+                    <div class="home-grid">
+                        <div class="home-panel">
+                            <div class="hp-head"><div class="section-title">My Tasks</div><span class="muted" id="mytasks-count"></span></div>
+                            <div id="mytasks-container"></div>
+                        </div>
+                        <div class="home-panel">
+                            <div class="hp-head"><div class="section-title">My Projects</div></div>
+                            <div id="myproj-container"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ALL PROJECTS (managers/admins) -->
-                <div class="page hidden" id="view-allprojects">
-                    <div class="stat-row" id="stat-row"></div>
-                    <div class="toolbar">
-                        <div class="section-title">Projects</div>
-                        <div class="filter">
-                            <label>Department</label>
-                            <select id="dept-filter"><option value="all">All Departments</option></select>
-                        </div>
-                    </div>
-                    <div id="proj-container"></div>
-                </div>
+                <!-- PROJECT — full page -->
+                <div class="page hidden" id="view-project"></div>
 
                 <!-- USERS (admin) -->
                 <div class="page hidden" id="view-users">
@@ -588,8 +592,7 @@
             document.getElementById('sb-name').textContent = CURRENT_USER.name;
             document.getElementById('sb-role').textContent =
                 CURRENT_USER.department + ' · ' + CURRENT_USER.accessRole;
-            // "All Projects", "Users" and "Performance" are for people above interns.
-            document.getElementById('nav-allprojects').classList.toggle('hidden', !canManageUsers());
+            // "Users" and "Performance" are for people above interns.
             document.getElementById('nav-users').classList.toggle('hidden', !canManageUsers());
             document.getElementById('nav-perf').classList.toggle('hidden', !canManageUsers());
             try {
@@ -608,22 +611,24 @@
         document.getElementById('menu-toggle').onclick = () => document.getElementById('sidebar').classList.toggle('open');
 
         function switchView(view) {
-            if ((view === 'users' || view === 'performance' || view === 'allprojects') && !canManageUsers()) view = 'home';
-            document.querySelectorAll('.sb-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+            if ((view === 'users' || view === 'performance') && !canManageUsers()) view = 'home';
+            const highlight = view === 'project' ? 'home' : view;
+            document.querySelectorAll('.sb-link').forEach(l => l.classList.toggle('active', l.dataset.view === highlight));
             document.getElementById('view-home').classList.toggle('hidden', view !== 'home');
-            document.getElementById('view-allprojects').classList.toggle('hidden', view !== 'allprojects');
+            document.getElementById('view-project').classList.toggle('hidden', view !== 'project');
             document.getElementById('view-users').classList.toggle('hidden', view !== 'users');
             document.getElementById('view-perf').classList.toggle('hidden', view !== 'performance');
             const titles = {
                 home: ['Home', 'Your tasks and projects'],
-                allprojects: ['All Projects', 'Every project across the company'],
+                project: ['Project', ''],
                 users: ['Users', 'Employee directory & work updates'],
                 performance: ['Performance', 'Who is actually working — engagement scores'],
             };
-            document.getElementById('page-title').textContent = titles[view][0];
-            document.getElementById('page-sub').textContent = titles[view][1];
+            if (titles[view]) {
+                document.getElementById('page-title').textContent = titles[view][0];
+                document.getElementById('page-sub').textContent = titles[view][1];
+            }
             if (view === 'home') loadHome();
-            if (view === 'allprojects') loadDashboard();
             if (view === 'users') loadUsers();
             if (view === 'performance') loadPerformance();
         }
@@ -647,10 +652,26 @@
             try { localStorage.setItem('erp_theme', next); } catch (e) {}
         };
 
-        // ════════ HOME (My Tasks + My Projects) ════════
+        // ════════ HOME (KPI tiles + My Tasks + My Projects) ════════
         async function loadHome() {
+            loadHomeStats();
             loadMyTasks();
             loadMyProjects();
+        }
+
+        async function loadHomeStats() {
+            let stats = { open: 0, paused: 0, closed: 0, total: 0 };
+            try { stats = (await api('/api/projects/stats?mine=1')).stats; } catch (e) {}
+            const cards = [
+                { num: stats.total, lbl: 'All Projects', cls: '' },
+                { num: stats.open, lbl: 'Open', cls: 's-open' },
+                { num: stats.paused, lbl: 'Paused', cls: 's-paused' },
+                { num: stats.closed, lbl: 'Closed', cls: 's-closed' },
+            ];
+            document.getElementById('stat-row').innerHTML = cards.map(c => `
+                <div class="stat-card ${c.cls}" style="cursor:default;">
+                    <div class="num">${c.num}</div><div class="lbl">${c.lbl}</div>
+                </div>`).join('');
         }
 
         async function loadMyTasks() {
@@ -725,13 +746,12 @@
         }
 
         function populateDeptFilters() {
-            ['dept-filter', 'users-dept-filter', 'perf-dept-filter'].forEach(id => {
+            ['users-dept-filter', 'perf-dept-filter'].forEach(id => {
                 const sel = document.getElementById(id);
                 sel.innerHTML = '<option value="all">All Departments</option>' +
                     DEPARTMENTS.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
             });
         }
-        document.getElementById('dept-filter').onchange = loadDashboard;
         document.getElementById('users-dept-filter').onchange = loadUsers;
         document.getElementById('users-search').oninput = renderUsersList;
         document.getElementById('perf-dept-filter').onchange = loadPerformance;
@@ -834,51 +854,7 @@
             } catch (e) { alert(e.message); }
         }
 
-        // ════════ DASHBOARD ════════
-        let currentStatusFilter = 'all';
-
-        async function loadDashboard() {
-            const dept = document.getElementById('dept-filter').value;
-            let stats = { open: 0, paused: 0, closed: 0, total: 0 }, projects = [];
-            try {
-                const s = await api('/api/projects/stats'); stats = s.stats;
-                const qs = dept !== 'all' ? '?department=' + encodeURIComponent(dept) : '';
-                projects = (await api('/api/projects' + qs)).projects;
-            } catch (e) {
-                document.getElementById('proj-container').innerHTML =
-                    `<div class="empty-state"><div class="big"></div>${esc(e.message)}</div>`;
-            }
-            renderStats(stats);
-            renderProjects(projects);
-        }
-
-        function renderStats(stats) {
-            const cards = [
-                { key: 'all', num: stats.total, lbl: 'All Projects', cls: '' },
-                { key: 'open', num: stats.open, lbl: 'Open', cls: 's-open' },
-                { key: 'paused', num: stats.paused, lbl: 'Paused', cls: 's-paused' },
-                { key: 'closed', num: stats.closed, lbl: 'Closed', cls: 's-closed' },
-            ];
-            document.getElementById('stat-row').innerHTML = cards.map(c => `
-                <div class="stat-card ${c.cls} ${currentStatusFilter === c.key ? 'sel' : ''}" data-status="${c.key}">
-                    <div class="num">${c.num}</div><div class="lbl">${c.lbl}</div>
-                </div>`).join('');
-            document.querySelectorAll('.stat-card').forEach(card => {
-                card.onclick = () => {
-                    currentStatusFilter = currentStatusFilter === card.dataset.status ? 'all' : card.dataset.status;
-                    loadDashboard();
-                };
-            });
-        }
-
-        function renderProjects(projects) {
-            let list = projects;
-            if (currentStatusFilter !== 'all') list = projects.filter(p => p.status === currentStatusFilter);
-            renderProjectGrid(document.getElementById('proj-container'), list,
-                'No projects yet. Click + New Project to create the first one.');
-        }
-
-        // Shared card grid used by both "All Projects" and "My Projects".
+        // Shared card grid used to render project cards (My Projects).
         function renderProjectGrid(container, list, emptyMsg) {
             if (!list.length) {
                 container.innerHTML = `<div class="empty-state"><div class="big"></div>${esc(emptyMsg)}</div>`;
@@ -1016,7 +992,7 @@
                     department: document.getElementById('np-dept').value, memberIds: [...selectedMembers],
                     startDate: document.getElementById('np-start').value || null,
                     endDate: document.getElementById('np-end').value || null }) });
-                closeModal(); switchView('home'); currentStatusFilter = 'all'; await loadDashboard();
+                closeModal(); switchView('home');
             } catch (e) {
                 err.textContent = '' + e.message; err.classList.remove('hidden');
                 btn.disabled = false; btn.textContent = 'Create Project';
@@ -1024,29 +1000,30 @@
         }
 
         // ════════ PROJECT DETAIL ════════
+        // Opens a project as a full page (its own view), not a modal.
         async function openProjectDetail(id) {
-            openModal('<div class="modal-body"><p style="color:var(--ink-soft)">Loading…</p></div>', true);
+            const box = document.getElementById('view-project');
+            box.innerHTML = '<div class="muted" style="padding:10px 2px;">Loading…</div>';
+            switchView('project');
             let project;
             try { project = (await api('/api/projects/' + id)).project; }
-            catch (e) { openModal(`<div class="modal-body"><p class="form-error">${esc(e.message)}</p></div>`, true); return; }
+            catch (e) { box.innerHTML = `<button class="back-link" onclick="switchView('home')">‹ Back to Home</button><div class="pp-card"><div class="empty-state">${esc(e.message)}</div></div>`; return; }
             renderProjectDetail(project);
         }
 
         function renderProjectDetail(p) {
             const canManage = isAdmin() || p.manager_id === CURRENT_USER.id;
             const members = (p.members || []);
-            openModal(`
-                <div class="modal-head">
-                    <div>
-                        <h3 class="serif">${esc(p.name)}</h3>
-                        <div style="margin-top:6px;"><span class="chip dept">${esc(p.department)}</span></div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
+            document.getElementById('view-project').innerHTML = `
+                <button class="back-link" id="pp-back">‹ Back to Home</button>
+                <div class="pp-card">
+                    <div class="pp-head">
+                        <div>
+                            <div class="pp-title serif">${esc(p.name)}</div>
+                            <div style="margin-top:6px;"><span class="chip dept">${esc(p.department)}</span></div>
+                        </div>
                         <button class="btn btn-ghost" id="pd-history">History</button>
-                        <button class="x" onclick="closeModal()">✕</button>
                     </div>
-                </div>
-                <div class="modal-body">
                     <div class="pd-status">
                         ${['open', 'paused', 'closed'].map(s =>
                             `<button class="${p.status === s ? 'active ' + s : ''}" data-status="${s}" ${canManage ? '' : 'disabled'}>${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}
@@ -1077,9 +1054,10 @@
                     </div>
                     ${canManage ? `<div class="modal-actions"><button class="btn btn-ghost" id="pd-edit-members">Edit Members</button></div>` : ''}
                     <div class="form-error hidden" id="pd-err"></div>
-                </div>`, true);
+                </div>`;
 
-            document.querySelectorAll('.pd-status button').forEach(btn => {
+            document.getElementById('pp-back').onclick = () => switchView('home');
+            document.querySelectorAll('#view-project .pd-status button').forEach(btn => {
                 if (!canManage) return;
                 btn.onclick = async () => {
                     const status = btn.dataset.status;
@@ -1087,7 +1065,7 @@
                     try {
                         const updated = (await api('/api/projects/' + p.id + '/status', {
                             method: 'PATCH', body: JSON.stringify({ status }) })).project;
-                        renderProjectDetail(updated); refreshProjectViews();
+                        renderProjectDetail(updated);
                     } catch (e) {
                         const err = document.getElementById('pd-err'); err.textContent = '' + e.message; err.classList.remove('hidden');
                     }
@@ -1099,12 +1077,6 @@
             const addTaskBtn = document.getElementById('pd-add-task');
             if (addTaskBtn) addTaskBtn.onclick = () => openAddTaskModal(p);
             loadProjectTasks(p, canManage);
-        }
-
-        // refresh whichever project lists are on screen after a change
-        function refreshProjectViews() {
-            if (!document.getElementById('view-home').classList.contains('hidden')) loadMyProjects();
-            if (!document.getElementById('view-allprojects').classList.contains('hidden')) loadDashboard();
         }
 
         async function loadProjectTasks(p, canManage) {
@@ -1209,7 +1181,7 @@
                 try {
                     const updated = (await api('/api/projects/' + p.id + '/members', {
                         method: 'PATCH', body: JSON.stringify({ memberIds: [...selectedMembers] }) })).project;
-                    renderProjectDetail(updated); refreshProjectViews();
+                    closeModal(); renderProjectDetail(updated);
                 } catch (e) { err.textContent = '' + e.message; err.classList.remove('hidden'); }
             };
         }
