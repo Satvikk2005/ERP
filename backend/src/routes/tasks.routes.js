@@ -55,11 +55,14 @@ async function canEditTask(task, user) {
   return false;
 }
 
-// GET /api/tasks/mine — every task (incl. subtasks) assigned to the caller.
+// GET /api/tasks/mine — the caller's tasks (incl. subtasks). A done task stays
+// visible for the rest of the day it was completed, then rolls off the next
+// day (so the list shows what's still to do plus today's completions).
 router.get('/mine', requireAuth, wrap(async (req, res) => {
   const { rows } = await db.query(
     `${TASK_SELECT}
      WHERE t.assignee_id = $1
+       AND NOT (t.status = 'done' AND t.completed_at IS NOT NULL AND t.completed_at::date < CURRENT_DATE)
      ORDER BY (t.status = 'done'), t.task_date DESC NULLS LAST, t.created_at DESC`,
     [req.user.id]
   );
@@ -370,6 +373,15 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
       put('assignee_id', aid);
     }
   }
+  // Stamp (or clear) the completion time whenever the effective status flips,
+  // so "My Tasks" keeps a done task for the rest of that day and drops it the
+  // next day.
+  let newStatus;
+  if (b.status !== undefined) newStatus = b.status;
+  else if (b.completion !== undefined) newStatus = (Math.max(0, Math.min(100, parseInt(b.completion, 10) || 0)) >= 100 ? 'done' : 'pending');
+  if (newStatus === 'done' && task.status !== 'done') put('completed_at', new Date());
+  else if (newStatus === 'pending') put('completed_at', null);
+
   if (!sets.length) return res.json({ ok: true });
   params.push(req.params.id);
   await db.query(`UPDATE tasks SET ${sets.join(', ')}, updated_at = now() WHERE id = $${params.length}`, params);
