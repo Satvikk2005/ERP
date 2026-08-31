@@ -23,6 +23,7 @@
             --green: #4F8F63; --green-soft: #E4F0E7; --red: #C1585B; --red-soft: #F7E4E4;
             --blue: #4C74A8; --blue-soft: #E3ECF5; --track: #F1E4EA; --shadow: 0 12px 32px rgba(120, 10, 60, 0.07);
             --input-bg: #FCFAF4;
+            color-scheme: light;
         }
         /* Dark theme — set data-theme="dark" on <html>. Same token names, dark values. */
         :root[data-theme="dark"] {
@@ -33,12 +34,16 @@
             --green: #6fbf86; --green-soft: #1e2f24; --red: #e0787b; --red-soft: #3a2024;
             --blue: #7fa8d8; --blue-soft: #1e2a3a; --track: #382b33; --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
             --input-bg: #2a2128;
+            color-scheme: dark;
         }
         body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh; }
         .mono { font-family: 'IBM Plex Mono', monospace; }
         .serif { font-family: 'Fraunces', serif; }
         .hidden { display: none !important; }
         input, select, button, textarea { font-family: inherit; }
+        /* Keep all form controls readable in both themes (no black-on-dark text). */
+        input, select, textarea { color: var(--ink); }
+        select option { background: var(--card); color: var(--ink); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -1614,7 +1619,6 @@
 
                     <div class="toolbar" style="margin:18px 0 8px;">
                         <div class="section-title">Tasks</div>
-                        ${canManage ? '<button class="btn btn-ghost" id="pd-add-task">+ Add Task</button>' : ''}
                     </div>
                     <div id="pd-tasks"><div class="tb-empty">Loading tasks…</div></div>
 
@@ -1636,8 +1640,6 @@
             const delProjBtn = document.getElementById('pd-delete-project');
             if (delProjBtn) delProjBtn.onclick = () => openDeleteProjectModal(p);
             document.getElementById('pd-history').onclick = () => openHistoryModal(p);
-            const addTaskBtn = document.getElementById('pd-add-task');
-            if (addTaskBtn) addTaskBtn.onclick = () => openAddTaskModal(p);
             loadProjectTasks(p, canManage);
         }
 
