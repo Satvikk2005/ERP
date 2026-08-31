@@ -377,6 +377,21 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
   res.json({ ok: true, task: full[0] });
 }));
 
+// DELETE /api/tasks/:id/comments — clear the whole comment thread on a task.
+// Only the project manager or an admin. Irreversible.
+router.delete('/:id/comments', requireAuth, wrap(async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT t.project_id, p.manager_id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.id = $1',
+    [req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Task not found.' });
+  if (req.user.id !== rows[0].manager_id && req.user.accessRole !== 'admin') {
+    return res.status(403).json({ error: 'Only the project manager or an admin can clear comments.' });
+  }
+  const { rowCount } = await db.query('DELETE FROM task_submissions WHERE task_id = $1', [req.params.id]);
+  res.json({ ok: true, deleted: rowCount });
+}));
+
 // DELETE /api/tasks/:id — the project manager or an admin can remove a task
 // (its subtasks, comments, docs and issues cascade away).
 router.delete('/:id', requireAuth, wrap(async (req, res) => {

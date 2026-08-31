@@ -9,6 +9,7 @@ const router = express.Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const VALID_STATUS = ['open', 'paused', 'closed'];
+const VALID_PRIORITY = ['none', 'low', 'medium', 'high'];
 
 async function logActivity(q, projectId, actorId, action, detail) {
   try {
@@ -22,7 +23,7 @@ async function logActivity(q, projectId, actorId, action, detail) {
 // Shared SELECT that decorates a project with its manager's name, member count,
 // and the assigned member list as JSON.
 const PROJECT_SELECT = `
-  SELECT p.id, p.name, p.description, p.department, p.status,
+  SELECT p.id, p.name, p.description, p.department, p.status, p.priority,
          p.manager_id, m.name AS manager_name, m.employee_code AS manager_code,
          p.start_date, p.end_date, p.created_at, p.updated_at,
          COALESCE(mem.member_count, 0) AS member_count,
@@ -126,6 +127,7 @@ router.post('/', requireAuth, wrap(async (req, res) => {
     return res.status(403).json({ error: 'Only managers or admins can create projects.' });
   }
   const { name, description, department, memberIds, startDate, endDate } = req.body || {};
+  const priority = VALID_PRIORITY.includes(req.body?.priority) ? req.body.priority : 'none';
   if (!name || !name.trim()) return res.status(400).json({ error: 'Project name is required.' });
   if (!department || !department.trim()) return res.status(400).json({ error: 'Department is required.' });
   // Empty strings from the form become NULL (dates are optional).
@@ -144,9 +146,9 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `INSERT INTO projects (name, description, department, manager_id, created_by, start_date, end_date)
-       VALUES ($1, $2, $3, $4, $4, $5, $6) RETURNING id`,
-      [name.trim().slice(0, 200), (description || '').trim().slice(0, 4000), department.trim().slice(0, 100), managerId, start, end]
+      `INSERT INTO projects (name, description, department, manager_id, created_by, start_date, end_date, priority)
+       VALUES ($1, $2, $3, $4, $4, $5, $6, $7) RETURNING id`,
+      [name.trim().slice(0, 200), (description || '').trim().slice(0, 4000), department.trim().slice(0, 100), managerId, start, end, priority]
     );
     const projectId = rows[0].id;
 
@@ -187,6 +189,23 @@ router.patch('/:id/status', requireAuth, wrap(async (req, res) => {
   }
   await db.query('UPDATE projects SET status = $1, updated_at = now() WHERE id = $2', [status, req.params.id]);
   await logActivity(db, req.params.id, req.user.id, 'status', `changed status to ${status}`);
+  const { rows: full } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [req.params.id]);
+  res.json({ project: full[0] });
+}));
+
+// PATCH /api/projects/:id/priority — only the project's manager or an admin.
+router.patch('/:id/priority', requireAuth, wrap(async (req, res) => {
+  const { priority } = req.body || {};
+  if (!VALID_PRIORITY.includes(priority)) {
+    return res.status(400).json({ error: 'Priority must be none, low, medium, or high.' });
+  }
+  const { rows } = await db.query('SELECT manager_id FROM projects WHERE id = $1', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Project not found.' });
+  if (rows[0].manager_id !== req.user.id && req.user.accessRole !== 'admin') {
+    return res.status(403).json({ error: 'Only the project manager or an admin can change the priority.' });
+  }
+  await db.query('UPDATE projects SET priority = $1, updated_at = now() WHERE id = $2', [priority, req.params.id]);
+  await logActivity(db, req.params.id, req.user.id, 'priority', `set priority to ${priority}`);
   const { rows: full } = await db.query(`${PROJECT_SELECT} WHERE p.id = $1`, [req.params.id]);
   res.json({ project: full[0] });
 }));
