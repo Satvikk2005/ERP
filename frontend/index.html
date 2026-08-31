@@ -436,6 +436,59 @@
         .dw-compose-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
         .dw-compose-actions .btn { flex-shrink: 0; }
         @media (max-width: 520px) { .drawer { width: 100vw; } .dw-meta { grid-template-columns: 1fr; } }
+
+        /* ── compact project header ── */
+        .pp-subline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); }
+        .pp-subline .pp-fact b { color: var(--ink-soft); font-weight: 700; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; margin-right: 5px; }
+        .pp-subline .pp-fact { color: var(--ink); }
+        .pp-team-btn { border: 1px solid var(--border); background: var(--bg); color: var(--brand-deep); font-weight: 600; font-size: 12px;
+            padding: 5px 11px; border-radius: 20px; cursor: pointer; }
+        .pp-team-btn:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+        /* ── richer task table (project board) ── */
+        .ttable th, .ttable td { white-space: nowrap; }
+        .ttable .pt-name { white-space: normal; }
+        .ttable .tt-sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; white-space: normal; max-width: 260px; }
+        .ptag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+        .tchip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--blue-soft); color: var(--blue); }
+        .pctwrap { display: flex; align-items: center; gap: 7px; min-width: 90px; }
+        .pcttrack { flex: 1; height: 7px; background: var(--track); border-radius: 6px; overflow: hidden; }
+        .pctfill { height: 100%; background: var(--brand); border-radius: 6px; }
+        .pctnum { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+
+        /* ── task drawer: info fields + tabs ── */
+        .dw-idchip { font-size: 11px; font-weight: 600; color: var(--ink-soft); background: var(--bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px; vertical-align: middle; }
+        .dw-info { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+        .dw-info .frow { display: grid; grid-template-columns: 130px 1fr; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+        .dw-info .frow:last-child { border-bottom: none; }
+        .dw-info .fk { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+        .dw-info .fv { min-width: 0; }
+        .dw-val { font-size: 13px; font-weight: 600; }
+        .dw-inp { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 7px; padding: 7px 9px; font-size: 13px; color: var(--ink); outline: none; }
+        .dw-inp:focus { border-color: var(--brand); }
+        .dw-inp:disabled { background: transparent; border-color: transparent; padding-left: 0; color: var(--ink); font-weight: 600; -webkit-appearance: none; appearance: none; }
+        .dw-desc { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px; padding: 9px 11px; font-size: 13px; color: var(--ink); outline: none; min-height: 54px; resize: vertical; margin-bottom: 16px; }
+        .dw-desc:focus { border-color: var(--brand); }
+        .dw-desc:disabled { background: var(--bg); }
+        .dw-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; overflow-x: auto; }
+        .dw-tab { border: none; background: none; padding: 9px 12px; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+        .dw-tab:hover { color: var(--ink); }
+        .dw-tab.active { color: var(--brand-deep); border-bottom-color: var(--brand); }
+        .dw-composer { margin-bottom: 16px; }
+        .dw-composer textarea { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; color: var(--ink); outline: none; min-height: 58px; resize: vertical; }
+        .dw-composer input[type=text] { width: 100%; border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--ink); outline: none; margin-top: 8px; }
+        .dw-composer textarea:focus, .dw-composer input:focus { border-color: var(--brand); }
+        .dw-compose-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .sub-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .sub-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; font-size: 13px; cursor: pointer; }
+        .sub-row:hover { border-color: var(--brand); }
+        .sub-row .sub-title { flex: 1; min-width: 0; font-weight: 600; }
+        .sub-row .sub-title.done-txt { text-decoration: line-through; color: var(--ink-soft); font-weight: 400; }
+        .sub-row .sub-owner { color: var(--ink-soft); font-size: 12px; }
+        .dw-addrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .dw-addrow input, .dw-addrow select { border: 1px solid var(--border); background: var(--input-bg); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--ink); outline: none; }
+        .dw-addrow input[type=text] { flex: 1; min-width: 120px; }
+        .dw-addrow input:focus, .dw-addrow select:focus { border-color: var(--brand); }
     </style>
 </head>
 <body>
@@ -602,6 +655,23 @@
             return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
         }
         function initials(name) { return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+        function statusPill(status) {
+            const done = status === 'done';
+            return `<span class="pill ${done ? 'open' : 'paused'}" style="${done ? 'background:var(--green-soft);color:var(--green)' : ''}">${done ? 'Done' : 'Open'}</span>`;
+        }
+        function priorityTag(pr) {
+            const map = { high: ['High', 'var(--red-soft)', 'var(--red)'], medium: ['Medium', 'var(--warn-soft)', 'var(--warn)'], low: ['Low', 'var(--blue-soft)', 'var(--blue)'] };
+            const m = map[pr];
+            return m ? `<span class="ptag" style="background:${m[1]};color:${m[2]};">${m[0]}</span>` : '<span class="muted">None</span>';
+        }
+        function tagChips(tags) {
+            if (!tags) return '<span class="muted">—</span>';
+            return tags.split(',').map(t => t.trim()).filter(Boolean).map(t => `<span class="tchip">${esc(t)}</span>`).join(' ');
+        }
+        function pctBar(pct) {
+            const v = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
+            return `<div class="pctwrap"><div class="pcttrack"><div class="pctfill" style="width:${v}%"></div></div><span class="pctnum">${v}%</span></div>`;
+        }
         function fmtDay(iso) { return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
         function timelineText(p) {
             if (p.start_date && p.end_date) return fmtDay(p.start_date) + '  →  ' + fmtDay(p.end_date);
@@ -807,8 +877,7 @@
             box.querySelectorAll('.mt-row[data-task]').forEach(row => {
                 row.onclick = () => {
                     const t = tasks.find(x => x.id == row.dataset.task);
-                    openTaskDrawer({ ...t, assignee_name: CURRENT_USER.name },
-                        { projectName: t.project_name, canManageTask: true, onChange: loadMyTasks });
+                    openTaskDrawer(t, { projectName: t.project_name, canManageTask: false, onChange: loadMyTasks });
                 };
             });
         }
@@ -824,78 +893,146 @@
         drawerBackdrop.addEventListener('click', e => { if (e.target === drawerBackdrop) closeDrawer(); });
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawerBackdrop.classList.contains('open')) closeDrawer(); });
 
-        function openTaskDrawer(task, ctx = {}) {
-            const projName = ctx.projectName || task.project_name || '';
-            const isDone = task.status === 'done';
-            const canStatus = !!ctx.canManageTask;
+        // Drawer-scoped state so the tabs and field editors share one task.
+        let DRAWER = { task: null, ctx: {}, canEdit: false, members: null, tab: 'comments' };
+
+        async function drawerMembers() {
+            if (DRAWER.members) return DRAWER.members;
+            if (DRAWER.ctx.members) { DRAWER.members = DRAWER.ctx.members; return DRAWER.members; }
+            try { DRAWER.members = (await api('/api/projects/' + DRAWER.task.project_id)).project.members || []; }
+            catch (e) { DRAWER.members = []; }
+            return DRAWER.members;
+        }
+
+        async function openTaskDrawer(task, ctx = {}) {
+            drawerBackdrop.classList.add('open');
+            drawerEl.innerHTML = '<div class="dw-body"><div class="cmt-empty">Loading…</div></div>';
+            // Always refetch so the panel shows the latest field values.
+            try { task = (await api('/api/tasks/' + task.id)).task; }
+            catch (e) { /* fall back to the passed-in task */ }
+            DRAWER = { task, ctx, members: ctx.members || null, tab: 'comments',
+                canEdit: !!ctx.canManageTask || task.assignee_id === CURRENT_USER.id };
+            renderDrawer();
+        }
+
+        function renderDrawer() {
+            const t = DRAWER.task;
+            const canEdit = DRAWER.canEdit;
+            const canManage = !!DRAWER.ctx.canManageTask;   // leader/admin — can reassign owner & delete
+            const projName = DRAWER.ctx.projectName || t.project_name || '';
+            const ro = canEdit ? '' : 'disabled';
+            const prioOpts = ['none', 'low', 'medium', 'high'].map(p =>
+                `<option value="${p}" ${t.priority === p ? 'selected' : ''}>${p === 'none' ? 'None' : p[0].toUpperCase() + p.slice(1)}</option>`).join('');
+            const ownerField = (canManage && DRAWER.members)
+                ? `<select class="dw-inp" id="f-owner" ${ro}>${DRAWER.members.map(m => `<option value="${m.id}" ${m.id === t.assignee_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>`
+                : `<div class="dw-val">${t.assignee_name ? esc(t.assignee_name) : '—'}</div>`;
             drawerEl.innerHTML = `
                 <div class="dw-head">
-                    <div>
-                        <div class="dw-title">${esc(task.title)}</div>
-                        ${projName ? `<div class="dw-proj">${esc(projName)}</div>` : ''}
+                    <div style="min-width:0;">
+                        <div class="dw-title">${esc(t.title)} <span class="dw-idchip">T-${t.id}</span></div>
+                        <div class="dw-proj">${projName ? esc(projName) : ''}${t.assigned_by_name ? ' · by ' + esc(t.assigned_by_name) : ''}</div>
                     </div>
                     <button class="x" id="dw-close">✕</button>
                 </div>
                 <div class="dw-body">
-                    <div class="dw-status-row">
-                        <button class="${!isDone ? 'active pending' : ''}" data-set="pending" ${canStatus ? '' : 'disabled'}>Open</button>
-                        <button class="${isDone ? 'active done' : ''}" data-set="done" ${canStatus ? '' : 'disabled'}>Done</button>
+                    <div class="dw-info">
+                        <div class="frow"><div class="fk">Status</div><div class="fv">
+                            <select class="dw-inp" id="f-status" ${ro}><option value="pending" ${t.status !== 'done' ? 'selected' : ''}>Open</option><option value="done" ${t.status === 'done' ? 'selected' : ''}>Done</option></select></div></div>
+                        <div class="frow"><div class="fk">Owner</div><div class="fv">${ownerField}</div></div>
+                        <div class="frow"><div class="fk">Priority</div><div class="fv"><select class="dw-inp" id="f-priority" ${ro}>${prioOpts}</select></div></div>
+                        <div class="frow"><div class="fk">Completion %</div><div class="fv"><input class="dw-inp" id="f-completion" type="number" min="0" max="100" value="${t.completion || 0}" ${ro}></div></div>
+                        <div class="frow"><div class="fk">Start Date</div><div class="fv"><input class="dw-inp" id="f-start" type="date" value="${t.start_date || ''}" ${ro}></div></div>
+                        <div class="frow"><div class="fk">Due Date</div><div class="fv"><input class="dw-inp" id="f-due" type="date" value="${t.task_date || ''}" ${ro}></div></div>
+                        <div class="frow"><div class="fk">Duration</div><div class="fv"><input class="dw-inp" id="f-duration" type="text" placeholder="e.g. 2 days" value="${esc(t.duration || '')}" ${ro}></div></div>
+                        <div class="frow"><div class="fk">Tags</div><div class="fv"><input class="dw-inp" id="f-tags" type="text" placeholder="comma,separated" value="${esc(t.tags || '')}" ${ro}></div></div>
+                        <div class="frow"><div class="fk">Stipend</div><div class="fv"><select class="dw-inp" id="f-stipend" ${ro}><option value="no" ${!t.stipend ? 'selected' : ''}>No</option><option value="yes" ${t.stipend ? 'selected' : ''}>Yes</option></select></div></div>
                     </div>
-                    <div class="dw-meta">
-                        <div class="cell"><div class="k">Owner</div><div class="v">${task.assignee_name ? esc(task.assignee_name) : '—'}</div></div>
-                        <div class="cell"><div class="k">Assigned by</div><div class="v">${task.assigned_by_name ? esc(task.assigned_by_name) : '—'}</div></div>
-                        <div class="cell"><div class="k">Due date</div><div class="v">${task.task_date ? fmtDay(task.task_date) : '—'}</div></div>
-                        <div class="cell"><div class="k">Status</div><div class="v">${isDone ? 'Done' : 'Open'}</div></div>
+                    <div class="fk" style="margin:4px 2px 6px;">Description</div>
+                    <textarea class="dw-desc" id="f-details" placeholder="${canEdit ? 'Add a description…' : 'No description.'}" ${ro}>${esc(t.details || '')}</textarea>
+                    <div class="dw-tabs">
+                        ${['comments', 'subtasks', 'docs', 'issues'].map(tab => `
+                            <button class="dw-tab ${DRAWER.tab === tab ? 'active' : ''}" data-tab="${tab}">
+                                ${tab[0].toUpperCase() + tab.slice(1)}${tab === 'comments' && t.comment_count ? ' (' + t.comment_count + ')' : ''}${tab === 'subtasks' && t.subtask_count ? ' (' + t.subtask_count + ')' : ''}${tab === 'docs' && t.doc_count ? ' (' + t.doc_count + ')' : ''}${tab === 'issues' && t.issue_count ? ' (' + t.issue_count + ')' : ''}
+                            </button>`).join('')}
                     </div>
-                    ${task.details ? `<div class="dw-details">${esc(task.details)}</div>` : ''}
-                    <div class="section-title" style="margin-bottom:10px;">Comments &amp; work updates</div>
-                    <div id="dw-comments"><div class="cmt-empty">Loading…</div></div>
-                </div>
-                <div class="dw-compose">
+                    <div id="dw-tabbody"></div>
+                </div>`;
+            document.getElementById('dw-close').onclick = closeDrawer;
+            wireFieldEditors();
+            drawerEl.querySelectorAll('.dw-tab').forEach(b => b.onclick = () => {
+                DRAWER.tab = b.dataset.tab;
+                drawerEl.querySelectorAll('.dw-tab').forEach(x => x.classList.toggle('active', x.dataset.tab === DRAWER.tab));
+                renderTab();
+            });
+            renderTab();
+        }
+
+        // Auto-save each field on change via PATCH; refresh the underlying list.
+        function wireFieldEditors() {
+            if (!DRAWER.canEdit) return;
+            const t = DRAWER.task;
+            const save = async (patch) => {
+                try {
+                    const r = await api('/api/tasks/' + t.id, { method: 'PATCH', body: JSON.stringify(patch) });
+                    if (r.task) DRAWER.task = { ...DRAWER.task, ...r.task };
+                    if (DRAWER.ctx.onChange) DRAWER.ctx.onChange();
+                } catch (e) { alert(e.message); }
+            };
+            const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+            bind('f-status', 'change', e => save({ status: e.target.value }));
+            bind('f-owner', 'change', e => save({ assigneeId: Number(e.target.value) }));
+            bind('f-priority', 'change', e => save({ priority: e.target.value }));
+            bind('f-completion', 'change', e => save({ completion: Number(e.target.value) }));
+            bind('f-start', 'change', e => save({ startDate: e.target.value || null }));
+            bind('f-due', 'change', e => save({ date: e.target.value || null }));
+            bind('f-duration', 'change', e => save({ duration: e.target.value }));
+            bind('f-tags', 'change', e => save({ tags: e.target.value }));
+            bind('f-stipend', 'change', e => save({ stipend: e.target.value === 'yes' }));
+            bind('f-details', 'change', e => save({ details: e.target.value }));
+        }
+
+        function renderTab() {
+            const body = document.getElementById('dw-tabbody');
+            if (!body) return;
+            if (DRAWER.tab === 'comments') return renderCommentsTab(body);
+            if (DRAWER.tab === 'subtasks') return renderSubtasksTab(body);
+            if (DRAWER.tab === 'docs') return renderDocsTab(body);
+            if (DRAWER.tab === 'issues') return renderIssuesTab(body);
+        }
+
+        // ── Comments tab ──
+        async function renderCommentsTab(body) {
+            const t = DRAWER.task;
+            body.innerHTML = `
+                <div class="dw-composer">
                     <textarea id="dw-body" placeholder="Write your work update…"></textarea>
                     <input type="text" id="dw-doc" placeholder="Related document / link (optional)">
                     <div class="dw-compose-actions">
-                        <button class="btn btn-primary" id="dw-post">Post update</button>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);"><input type="checkbox" id="dw-done" style="width:15px;height:15px;accent-color:var(--brand);" ${isDone ? 'checked disabled' : ''}> mark done</label>
+                        <button class="btn btn-ghost" id="dw-comment">Comment</button>
+                        <button class="btn btn-primary" id="dw-submit" title="Post the update and mark this task done">Submit</button>
                         <span class="form-error hidden" id="dw-err" style="margin:0;flex:1;"></span>
                     </div>
-                </div>`;
-            drawerBackdrop.classList.add('open');
-            document.getElementById('dw-close').onclick = closeDrawer;
-
-            // status toggle
-            drawerEl.querySelectorAll('.dw-status-row button').forEach(btn => {
-                if (!canStatus) return;
-                btn.onclick = async () => {
-                    const set = btn.dataset.set;
-                    if ((set === 'done') === isDone) return;
-                    try {
-                        await api('/api/tasks/' + task.id, { method: 'PATCH', body: JSON.stringify({ status: set }) });
-                        if (ctx.onChange) ctx.onChange();
-                        openTaskDrawer({ ...task, status: set }, ctx);   // re-render with new status
-                    } catch (e) { alert(e.message); }
-                };
-            });
-
-            loadTaskComments(task.id);
-            document.getElementById('dw-post').onclick = async () => {
+                </div>
+                <div id="dw-comments"><div class="cmt-empty">Loading…</div></div>`;
+            const post = async (markDone) => {
                 const err = document.getElementById('dw-err'); err.classList.add('hidden');
-                const body = document.getElementById('dw-body').value.trim();
-                if (!body) { err.textContent = 'Write your update.'; err.classList.remove('hidden'); return; }
-                const btn = document.getElementById('dw-post'); btn.disabled = true; btn.textContent = 'Posting…';
+                const text = document.getElementById('dw-body').value.trim();
+                if (!text) { err.textContent = 'Write your update.'; err.classList.remove('hidden'); return; }
+                const b1 = document.getElementById('dw-comment'), b2 = document.getElementById('dw-submit');
+                b1.disabled = b2.disabled = true;
                 try {
-                    await api('/api/tasks/' + task.id + '/submit', { method: 'POST', body: JSON.stringify({
-                        body, attachmentNote: document.getElementById('dw-doc').value.trim() }) });
-                    let markedDone = false;
-                    const doneCb = document.getElementById('dw-done');
-                    if (doneCb && doneCb.checked && !doneCb.disabled) {
-                        try { await api('/api/tasks/' + task.id, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) }); markedDone = true; } catch (e) {}
-                    }
-                    if (ctx.onChange) ctx.onChange();
-                    if (markedDone) openTaskDrawer({ ...task, status: 'done' }, ctx);
-                    else { document.getElementById('dw-body').value = ''; document.getElementById('dw-doc').value = ''; loadTaskComments(task.id); }
-                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Post update'; }
+                    await api('/api/tasks/' + t.id + '/submit', { method: 'POST', body: JSON.stringify({
+                        body: text, attachmentNote: document.getElementById('dw-doc').value.trim() }) });
+                    if (markDone) await api('/api/tasks/' + t.id, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
+                    if (DRAWER.ctx.onChange) DRAWER.ctx.onChange();
+                    // refresh the task (counts, status) and re-render, staying on comments
+                    try { DRAWER.task = (await api('/api/tasks/' + t.id)).task; } catch (e) {}
+                    renderDrawer();
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); b1.disabled = b2.disabled = false; }
             };
+            document.getElementById('dw-comment').onclick = () => post(false);
+            document.getElementById('dw-submit').onclick = () => post(true);
+            loadTaskComments(t.id);
         }
 
         async function loadTaskComments(taskId) {
@@ -909,14 +1046,122 @@
                 <div class="cmt">
                     <span class="avatar">${initials(c.author || '?')}</span>
                     <div class="cmt-main">
-                        <div class="cmt-top">
-                            <span class="cmt-author">${esc(c.author || 'Someone')}</span>
-                            <span class="cmt-when">${new Date(c.created_at).toLocaleString()}</span>
-                        </div>
+                        <div class="cmt-top"><span class="cmt-author">${esc(c.author || 'Someone')}</span>
+                            <span class="cmt-when">${new Date(c.created_at).toLocaleString()}</span></div>
                         <div class="cmt-body">${esc(c.body)}</div>
                         ${c.attachment_note ? `<div class="cmt-attach">Attachment: ${esc(c.attachment_note)}</div>` : ''}
                     </div>
                 </div>`).join('') + '</div>';
+        }
+
+        // ── Subtasks tab ── (a subtask is a task with a parent; it shows up in the
+        // assignee's "My Tasks" automatically)
+        async function renderSubtasksTab(body) {
+            const t = DRAWER.task;
+            body.innerHTML = '<div class="cmt-empty">Loading…</div>';
+            const members = await drawerMembers();
+            let subs = [];
+            try { subs = (await api('/api/tasks/' + t.id + '/subtasks')).tasks; } catch (e) {}
+            const addForm = `
+                <div class="dw-addrow">
+                    <input type="text" id="st-title" placeholder="New subtask">
+                    <select id="st-owner">${members.map(m => `<option value="${m.id}" ${m.id === t.assignee_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
+                    <input type="date" id="st-due" title="Due date">
+                    <button class="btn btn-primary" id="st-add">Add</button>
+                </div>
+                <div class="form-error hidden" id="st-err"></div>`;
+            body.innerHTML = (subs.length ? '<div class="sub-list">' + subs.map(s => `
+                <div class="sub-row" data-sub="${s.id}">
+                    <span class="pill ${s.status === 'done' ? 'open' : 'paused'}" style="${s.status === 'done' ? 'background:var(--green-soft);color:var(--green)' : ''}">${s.status === 'done' ? 'Done' : 'Open'}</span>
+                    <span class="sub-title">${esc(s.title)}</span>
+                    <span class="sub-owner">${s.assignee_name ? esc(s.assignee_name) : '—'}</span>
+                    <span class="muted" style="font-size:11px;">${s.task_date ? fmtDay(s.task_date) : ''}</span>
+                </div>`).join('') + '</div>' : '<div class="cmt-empty">No subtasks yet.</div>') + addForm;
+            body.querySelectorAll('.sub-row[data-sub]').forEach(r => r.onclick = () => {
+                const s = subs.find(x => x.id == r.dataset.sub);
+                openTaskDrawer(s, { projectName: DRAWER.ctx.projectName, canManageTask: DRAWER.ctx.canManageTask, members, onChange: DRAWER.ctx.onChange });
+            });
+            const addBtn = document.getElementById('st-add');
+            if (addBtn) addBtn.onclick = async () => {
+                const err = document.getElementById('st-err'); err.classList.add('hidden');
+                const title = document.getElementById('st-title').value.trim();
+                if (!title) { err.textContent = 'Enter a subtask title.'; err.classList.remove('hidden'); return; }
+                addBtn.disabled = true;
+                try {
+                    await api('/api/tasks', { method: 'POST', body: JSON.stringify({
+                        parentTaskId: t.id, assigneeId: Number(document.getElementById('st-owner').value),
+                        title, date: document.getElementById('st-due').value || null }) });
+                    try { DRAWER.task = (await api('/api/tasks/' + t.id)).task; } catch (e) {}
+                    if (DRAWER.ctx.onChange) DRAWER.ctx.onChange();
+                    renderDrawer();
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); addBtn.disabled = false; }
+            };
+        }
+
+        // ── Docs tab ──
+        async function renderDocsTab(body) {
+            const t = DRAWER.task;
+            body.innerHTML = '<div class="cmt-empty">Loading…</div>';
+            let docs = [];
+            try { docs = (await api('/api/tasks/' + t.id + '/docs')).docs; } catch (e) {}
+            body.innerHTML = (docs.length ? '<div class="sub-list">' + docs.map(d => `
+                <div class="sub-row">
+                    <span class="sub-title">${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:var(--brand-deep);">${esc(d.name)}</a>` : esc(d.name)}</span>
+                    <span class="muted" style="font-size:11px;">${d.added_by ? esc(d.added_by) : ''}</span>
+                    <button class="icon-btn" data-deldoc="${d.id}" title="Remove">✕</button>
+                </div>`).join('') + '</div>' : '<div class="cmt-empty">No documents yet.</div>') + `
+                <div class="dw-addrow">
+                    <input type="text" id="dc-name" placeholder="Document name">
+                    <input type="text" id="dc-url" placeholder="Link (optional)">
+                    <button class="btn btn-primary" id="dc-add">Add</button>
+                </div><div class="form-error hidden" id="dc-err"></div>`;
+            body.querySelectorAll('[data-deldoc]').forEach(b => b.onclick = async () => {
+                try { await api('/api/tasks/docs/' + b.dataset.deldoc, { method: 'DELETE' }); renderTab(); } catch (e) { alert(e.message); }
+            });
+            document.getElementById('dc-add').onclick = async () => {
+                const err = document.getElementById('dc-err'); err.classList.add('hidden');
+                const name = document.getElementById('dc-name').value.trim();
+                if (!name) { err.textContent = 'Enter a document name.'; err.classList.remove('hidden'); return; }
+                try {
+                    await api('/api/tasks/' + t.id + '/docs', { method: 'POST', body: JSON.stringify({ name, url: document.getElementById('dc-url').value.trim() }) });
+                    try { DRAWER.task = (await api('/api/tasks/' + t.id)).task; } catch (e) {}
+                    renderDrawer();
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+            };
+        }
+
+        // ── Issues tab ──
+        async function renderIssuesTab(body) {
+            const t = DRAWER.task;
+            body.innerHTML = '<div class="cmt-empty">Loading…</div>';
+            let issues = [];
+            try { issues = (await api('/api/tasks/' + t.id + '/issues')).issues; } catch (e) {}
+            body.innerHTML = (issues.length ? '<div class="sub-list">' + issues.map(i => `
+                <div class="sub-row">
+                    <input type="checkbox" data-issue="${i.id}" ${i.status === 'closed' ? 'checked' : ''} title="Mark resolved" style="width:15px;height:15px;accent-color:var(--brand);">
+                    <span class="sub-title ${i.status === 'closed' ? 'done-txt' : ''}">${esc(i.title)}</span>
+                    <span class="muted" style="font-size:11px;">${i.created_by ? esc(i.created_by) : ''}</span>
+                </div>`).join('') + '</div>' : '<div class="cmt-empty">No issues raised.</div>') + `
+                <div class="dw-addrow">
+                    <input type="text" id="is-title" placeholder="Describe an issue / blocker">
+                    <button class="btn btn-primary" id="is-add">Raise</button>
+                </div><div class="form-error hidden" id="is-err"></div>`;
+            body.querySelectorAll('[data-issue]').forEach(cb => cb.onchange = async () => {
+                try { await api('/api/tasks/issues/' + cb.dataset.issue, { method: 'PATCH', body: JSON.stringify({ status: cb.checked ? 'closed' : 'open' }) });
+                    try { DRAWER.task = (await api('/api/tasks/' + t.id)).task; } catch (e) {}
+                    renderDrawer();
+                } catch (e) { alert(e.message); cb.checked = !cb.checked; }
+            });
+            document.getElementById('is-add').onclick = async () => {
+                const err = document.getElementById('is-err'); err.classList.add('hidden');
+                const title = document.getElementById('is-title').value.trim();
+                if (!title) { err.textContent = 'Describe the issue.'; err.classList.remove('hidden'); return; }
+                try {
+                    await api('/api/tasks/' + t.id + '/issues', { method: 'POST', body: JSON.stringify({ title }) });
+                    try { DRAWER.task = (await api('/api/tasks/' + t.id)).task; } catch (e) {}
+                    renderDrawer();
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+            };
         }
 
         async function loadMyProjects() {
@@ -1242,42 +1487,28 @@
                 <button class="back-link" id="pp-back">‹ Back to ${backTo === 'projects' ? 'Projects' : 'Home'}</button>
                 <div class="pp-card">
                     <div class="pp-head">
-                        <div>
-                            <div class="pp-title serif">${esc(p.name)}</div>
-                            <div style="margin-top:6px;"><span class="chip dept">${esc(p.department)}</span></div>
+                        <div style="min-width:0;">
+                            <div class="pp-title serif">${esc(p.name)} <span class="pill ${p.status}" style="vertical-align:middle;font-size:9.5px;">${p.status}</span></div>
+                            <div class="pp-subline">
+                                <span class="chip dept">${esc(p.department)}</span>
+                                <span class="pp-fact"><b>Manager</b> ${esc(p.manager_name)}</span>
+                                <span class="pp-fact"><b>Timeline</b> ${timelineText(p)}</span>
+                                <button class="pp-team-btn" id="pd-team-btn">${p.member_count} member${p.member_count == 1 ? '' : 's'}${canManage ? ' · Manage' : ''}</button>
+                                ${p.description ? `<button class="pp-team-btn" id="pd-desc-btn">Description</button>` : ''}
+                            </div>
                         </div>
-                        <button class="btn btn-ghost" id="pd-history">History</button>
-                    </div>
-                    <div class="pd-status">
-                        ${['open', 'paused', 'closed'].map(s =>
-                            `<button class="${p.status === s ? 'active ' + s : ''}" data-status="${s}" ${canManage ? '' : 'disabled'}>${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}
-                    </div>
-                    <div class="section-title" style="margin-bottom:8px;">Description</div>
-                    <p style="font-size:14px;line-height:1.6;color:${p.description ? 'var(--ink)' : 'var(--ink-soft)'};margin-bottom:20px;">${p.description ? esc(p.description) : 'No description provided.'}</p>
-                    <div class="pd-meta-grid">
-                        <div class="cell"><div class="k">Project Manager</div><div class="v">${esc(p.manager_name)}</div></div>
-                        <div class="cell"><div class="k">Timeline</div><div class="v">${timelineText(p)}</div></div>
+                        <div style="display:flex;gap:8px;flex-shrink:0;">
+                            ${canManage ? `<button class="btn btn-ghost" id="pd-status-btn">Status</button>` : ''}
+                            <button class="btn btn-ghost" id="pd-history">History</button>
+                        </div>
                     </div>
 
-                    <div class="toolbar" style="margin:6px 0 8px;">
+                    <div class="toolbar" style="margin:18px 0 8px;">
                         <div class="section-title">Tasks</div>
                         ${canManage ? '<button class="btn btn-ghost" id="pd-add-task">+ Add Task</button>' : ''}
                     </div>
                     <div id="pd-tasks"><div class="tb-empty">Loading tasks…</div></div>
 
-                    <div class="toolbar" style="margin:22px 0 10px;">
-                        <div class="section-title">Team Size · ${p.member_count} member${p.member_count == 1 ? '' : 's'}</div>
-                        ${canManage ? '<button class="btn btn-ghost" id="pd-edit-members">Manage Members</button>' : ''}
-                    </div>
-                    <div class="member-list">
-                        ${members.map(m => `
-                            <div class="member-row">
-                                <span class="avatar">${initials(m.name)}</span>
-                                <span><b style="font-weight:600">${esc(m.name)}</b>
-                                <span style="color:var(--ink-soft);font-size:12px;"> · ${esc(m.department)} · ${esc(m.job_title || '')}</span></span>
-                                ${m.id === p.manager_id ? '<span class="role-tag">Manager</span>' : ''}
-                            </div>`).join('') || '<div class="no-entries">No members assigned.</div>'}
-                    </div>
                     ${canManage ? `<div style="display:flex;justify-content:flex-end;margin-top:24px;">
                         <button class="btn btn-danger" id="pd-delete-project">Delete Project</button>
                     </div>` : ''}
@@ -1285,28 +1516,47 @@
                 </div>`;
 
             document.getElementById('pp-back').onclick = () => switchView(backTo);
-            document.querySelectorAll('#view-project .pd-status button').forEach(btn => {
-                if (!canManage) return;
-                btn.onclick = async () => {
-                    const status = btn.dataset.status;
-                    if (status === p.status) return;
-                    try {
-                        const updated = (await api('/api/projects/' + p.id + '/status', {
-                            method: 'PATCH', body: JSON.stringify({ status }) })).project;
-                        renderProjectDetail(updated);
-                    } catch (e) {
-                        const err = document.getElementById('pd-err'); err.textContent = '' + e.message; err.classList.remove('hidden');
-                    }
-                };
-            });
-            const editBtn = document.getElementById('pd-edit-members');
-            if (editBtn) editBtn.onclick = () => openEditMembers(p);
+            const teamBtn = document.getElementById('pd-team-btn');
+            if (teamBtn) teamBtn.onclick = () => canManage ? openEditMembers(p) : openMembersView(p);
+            const descBtn = document.getElementById('pd-desc-btn');
+            if (descBtn) descBtn.onclick = () => openModal(`<div class="modal-head"><h3 class="serif">Description — ${esc(p.name)}</h3><button class="x" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:14px;line-height:1.6;">${esc(p.description)}</p></div>`);
+            const statusBtn = document.getElementById('pd-status-btn');
+            if (statusBtn) statusBtn.onclick = () => openStatusModal(p);
             const delProjBtn = document.getElementById('pd-delete-project');
             if (delProjBtn) delProjBtn.onclick = () => openDeleteProjectModal(p);
             document.getElementById('pd-history').onclick = () => openHistoryModal(p);
             const addTaskBtn = document.getElementById('pd-add-task');
             if (addTaskBtn) addTaskBtn.onclick = () => openAddTaskModal(p);
             loadProjectTasks(p, canManage);
+        }
+
+        // Read-only member list (for members without manage rights).
+        function openMembersView(p) {
+            openModal(`<div class="modal-head"><h3 class="serif">Team — ${esc(p.name)}</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body"><div class="member-list">
+                ${(p.members || []).map(m => `
+                    <div class="member-row"><span class="avatar">${initials(m.name)}</span>
+                        <span><b style="font-weight:600">${esc(m.name)}</b><span style="color:var(--ink-soft);font-size:12px;"> · ${esc(m.department)} · ${esc(m.job_title || '')}</span></span>
+                        ${m.id === p.manager_id ? '<span class="role-tag">Manager</span>' : ''}
+                    </div>`).join('') || '<div class="no-entries">No members assigned.</div>'}
+                </div></div>`);
+        }
+
+        // Change project status (open / paused / closed) — manager or admin.
+        function openStatusModal(p) {
+            openModal(`<div class="modal-head"><h3 class="serif">Project status</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body"><div class="pd-status">
+                    ${['open', 'paused', 'closed'].map(s => `<button class="${p.status === s ? 'active ' + s : ''}" data-status="${s}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}
+                </div><div class="form-error hidden" id="ps-err"></div></div>`);
+            document.querySelectorAll('#modal .pd-status button').forEach(btn => {
+                btn.onclick = async () => {
+                    if (btn.dataset.status === p.status) { closeModal(); return; }
+                    try {
+                        const updated = (await api('/api/projects/' + p.id + '/status', { method: 'PATCH', body: JSON.stringify({ status: btn.dataset.status }) })).project;
+                        closeModal(); renderProjectDetail(updated);
+                    } catch (e) { const err = document.getElementById('ps-err'); err.textContent = e.message; err.classList.remove('hidden'); }
+                };
+            });
         }
 
         async function loadProjectTasks(p, canManage) {
@@ -1319,21 +1569,31 @@
                 box.innerHTML = '<div class="tb-empty">' + (canManage ? 'No tasks yet. Use “+ Add Task” to assign work to a member.' : 'No tasks assigned to you in this project yet.') + '</div>';
                 return;
             }
-            box.innerHTML = `<div class="tb">
-                <div class="tb-head"><div>Task</div><div>Owner</div><div>Status</div><div>Due</div></div>
-                ${tasks.map(t => `
-                    <div class="tb-row" data-task="${t.id}" style="cursor:pointer;">
-                        <div class="tt">${esc(t.title)}${t.details ? '<small>' + esc(t.details) + '</small>' : ''}</div>
-                        <div>${t.assignee_name ? esc(t.assignee_name) : '<span class="muted">Unassigned</span>'}</div>
-                        <div><span class="pill ${t.status === 'done' ? 'open' : 'paused'}" style="${t.status === 'done' ? 'background:var(--green-soft);color:var(--green)' : ''}">${t.status === 'done' ? 'done' : 'open'}</span></div>
-                        <div class="muted">${t.task_date ? fmtDay(t.task_date) : '—'}${canManage ? ' <button class="icon-btn" data-del="' + t.id + '" title="Delete task">✕</button>' : ''}</div>
-                    </div>`).join('')}
-            </div>`;
-            box.querySelectorAll('.tb-row[data-task]').forEach(row => {
+            box.innerHTML = `<div class="ptable"><div class="pt-scroll"><table class="ttable">
+                <thead><tr>
+                    <th>ID</th><th>Task Name</th><th>Owner</th><th>Status</th><th>Priority</th>
+                    <th>Tags</th><th>Due Date</th><th>%</th><th>Subtasks</th>${canManage ? '<th></th>' : ''}
+                </tr></thead>
+                <tbody>${tasks.map(t => `
+                    <tr data-task="${t.id}">
+                        <td class="pt-id">T-${t.id}</td>
+                        <td><div class="pt-name">${esc(t.title)}</div>${t.details ? '<div class="tt-sub">' + esc(t.details) + '</div>' : ''}</td>
+                        <td>${t.assignee_name ? '<span class="pt-owner"><span class="avatar">' + initials(t.assignee_name) + '</span>' + esc(t.assignee_name) + '</span>' : '<span class="muted">Unassigned</span>'}</td>
+                        <td>${statusPill(t.status)}</td>
+                        <td>${priorityTag(t.priority)}</td>
+                        <td>${tagChips(t.tags)}</td>
+                        <td class="muted">${t.task_date ? fmtDay(t.task_date) : '—'}</td>
+                        <td>${pctBar(t.completion)}</td>
+                        <td class="muted">${t.subtask_count || 0}</td>
+                        ${canManage ? '<td><button class="icon-btn" data-del="' + t.id + '" title="Delete task">✕</button></td>' : ''}
+                    </tr>`).join('')}
+                </tbody></table></div></div>`;
+            box.querySelectorAll('tbody tr[data-task]').forEach(row => {
+                row.style.cursor = 'pointer';
                 row.onclick = (e) => {
                     if (e.target.closest('[data-del]')) return;   // let the delete button handle its own click
                     const t = tasks.find(x => x.id == row.dataset.task);
-                    openTaskDrawer(t, { projectName: p.name, canManageTask: canManage,
+                    openTaskDrawer(t, { projectName: p.name, canManageTask: canManage, members: p.members || [],
                         onChange: () => loadProjectTasks(p, canManage) });
                 };
             });
@@ -1352,11 +1612,20 @@
                 <div class="modal-head"><h3 class="serif">Add Task — ${esc(p.name)}</h3><button class="x" onclick="closeModal()">✕</button></div>
                 <div class="modal-body">
                     <div class="field"><label>Task title</label><input type="text" id="at-title" placeholder="e.g. Draft the launch email"></div>
-                    <div class="field"><label>Details (optional)</label><textarea class="field-ta" id="at-details" placeholder="Any specifics"></textarea></div>
+                    <div class="field"><label>Description (optional)</label><textarea class="field-ta" id="at-details" placeholder="Any specifics"></textarea></div>
                     <div class="row2">
                         <div class="field"><label>Assign to</label><select id="at-assignee">${opts}</select></div>
-                        <div class="field"><label>Due date (optional)</label><input type="date" id="at-date"></div>
+                        <div class="field"><label>Priority</label><select id="at-priority"><option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
                     </div>
+                    <div class="row2">
+                        <div class="field"><label>Start date</label><input type="date" id="at-start"></div>
+                        <div class="field"><label>Due date</label><input type="date" id="at-date"></div>
+                    </div>
+                    <div class="row2">
+                        <div class="field"><label>Duration</label><input type="text" id="at-duration" placeholder="e.g. 2 days"></div>
+                        <div class="field"><label>Stipend</label><select id="at-stipend"><option value="no">No</option><option value="yes">Yes</option></select></div>
+                    </div>
+                    <div class="field"><label>Tags (comma separated)</label><input type="text" id="at-tags" placeholder="design, urgent"></div>
                     <div class="form-error hidden" id="at-err"></div>
                     <div class="modal-actions">
                         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
@@ -1372,6 +1641,11 @@
                     await api('/api/tasks', { method: 'POST', body: JSON.stringify({
                         projectId: p.id, assigneeId: Number(document.getElementById('at-assignee').value),
                         title, details: document.getElementById('at-details').value.trim(),
+                        priority: document.getElementById('at-priority').value,
+                        startDate: document.getElementById('at-start').value || null,
+                        duration: document.getElementById('at-duration').value.trim(),
+                        stipend: document.getElementById('at-stipend').value === 'yes',
+                        tags: document.getElementById('at-tags').value.trim(),
                         date: document.getElementById('at-date').value || null }) });
                     closeModal();
                     // reopen project detail to show the new task
