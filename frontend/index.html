@@ -505,6 +505,30 @@
         .user-pop .up-sub { color: var(--ink-soft); font-size: 11px; }
         .user-pop .up-empty { padding: 16px; text-align: center; color: var(--ink-soft); font-size: 13px; }
         .cmt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+        /* ── user detail: compact meta + projects/tasks/updates drill-down ── */
+        .u-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 14px; margin-bottom: 18px;
+            background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-size: 12.5px; color: var(--ink); }
+        .u-meta b { color: var(--ink-soft); font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; margin-right: 5px; }
+        .ep-proj { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+        .ep-head { display: flex; align-items: center; gap: 10px; padding: 11px 13px; cursor: pointer; background: var(--card); }
+        .ep-head:hover { background: var(--bg); }
+        .ep-caret { color: var(--ink-soft); font-size: 11px; width: 12px; flex-shrink: 0; }
+        .ep-name { font-weight: 600; font-size: 13.5px; flex: 1; min-width: 0; }
+        .ep-count { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; }
+        .ep-body { padding: 4px 13px 12px 32px; background: var(--bg); }
+        .ep-task { padding: 10px 0; border-bottom: 1px dashed var(--border); }
+        .ep-task:last-child { border-bottom: none; }
+        .ep-task-top { display: flex; align-items: center; gap: 9px; }
+        .ep-task-name { font-weight: 600; font-size: 13px; flex: 1; min-width: 0; }
+        .ep-updates { margin: 7px 0 0 4px; display: flex; flex-direction: column; gap: 6px; }
+        .ep-update { display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; background: var(--card);
+            border: 1px solid var(--border); border-radius: 8px; }
+        .ep-u-meta { font-size: 11px; color: var(--ink-soft); }
+        .ep-u-meta b { color: var(--ink); font-weight: 600; }
+        .ep-u-body { font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+        .ep-u-attach { font-size: 11px; color: var(--blue); }
+        .ep-noupdate { font-size: 12px; color: var(--ink-soft); font-style: italic; margin-left: 4px; }
     </style>
 </head>
 <body>
@@ -1944,14 +1968,6 @@
             const email = data.employee.email || dir.email || '—';
             const canReset = canManageUsers() && (isAdmin() || emp.access_role === 'employee');
             const canDelete = isAdmin() && emp.id !== CURRENT_USER.id;
-            const historyHtml = !history.length ?
-                '<div class="no-entries">No work updates submitted yet.</div>' :
-                '<div class="history-list">' + history.map(e => `
-                    <div class="history-item">
-                        <div class="h-date">${fmtDate(e.entry_date)}
-                            ${e.attachment_note ? '<span class="h-attach">' + esc(e.attachment_note) + '</span>' : ''}</div>
-                        <ul class="h-bullets">${(e.bullets || []).map(b => '<li>' + esc(b) + '</li>').join('')}</ul>
-                    </div>`).join('') + '</div>';
             panel.innerHTML = `
                 <div class="panel-head">
                     <div>
@@ -1967,23 +1983,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="info-grid">
-                    <div class="cell"><div class="k">Email</div><div class="v">${esc(email)}</div></div>
-                    <div class="cell"><div class="k">Department</div><div class="v">${esc(emp.department)}</div></div>
-                    <div class="cell"><div class="k">Role</div><div class="v">${esc(emp.job_title)}</div></div>
-                    <div class="cell"><div class="k">Employee ID</div><div class="v">${esc(emp.employee_code)}</div></div>
+                <div class="u-meta">
+                    <span><b>Email</b> ${esc(email)}</span>
+                    <span><b>Days logged (30d)</b> ${stats.submittedDays}/${stats.windowDays}</span>
+                    <span><b>Avg points/entry</b> ${stats.avgBulletsPerEntry}</span>
+                    <span><b>With evidence</b> ${stats.attachRatePct}%</span>
                 </div>
-                <div class="stat-grid">
-                    <div class="stat-tile"><div class="val">${stats.submittedDays}/${stats.windowDays}</div><div class="key">Days logged (30d)</div></div>
-                    <div class="stat-tile"><div class="val">${stats.avgBulletsPerEntry}</div><div class="key">Avg points / entry</div></div>
-                    <div class="stat-tile"><div class="val">${stats.avgWords}</div><div class="key">Avg words / point</div></div>
-                    <div class="stat-tile"><div class="val">${stats.attachRatePct}%</div><div class="key">With evidence</div></div>
+                <div class="toolbar" style="margin-bottom:10px;">
+                    <div class="section-title">Projects &amp; work updates</div>
+                    ${isAdmin() && history.length ? '<button class="btn btn-danger" id="clear-history" style="padding:6px 11px;font-size:11.5px;">Clear report history</button>' : ''}
                 </div>
-                <div class="toolbar" style="margin-bottom:12px;">
-                    <div class="section-title">Work Updates</div>
-                    ${isAdmin() && history.length ? '<button class="btn btn-danger" id="clear-history">Clear history</button>' : ''}
-                </div>
-                ${historyHtml}`;
+                <div id="emp-projects"><div class="no-entries">Loading projects…</div></div>`;
             if (canReset) {
                 document.getElementById('reset-pw').onclick = () => resetEmployeePassword({ id: emp.id, name: emp.name, email });
             }
@@ -1992,6 +2002,62 @@
             }
             const clearBtn = document.getElementById('clear-history');
             if (clearBtn) clearBtn.onclick = () => clearUserHistory(emp);
+            loadEmpProjects(emp.id);
+        }
+
+        // Projects this employee is on; clicking one expands to their tasks in it
+        // (with completion) and the work updates posted on each task.
+        async function loadEmpProjects(empId) {
+            const box = document.getElementById('emp-projects');
+            if (!box) return;
+            let projects = [];
+            try { projects = (await api('/api/reports/employees/' + empId + '/projects')).projects; }
+            catch (e) { box.innerHTML = `<div class="no-entries">${esc(e.message)}</div>`; return; }
+            if (!projects.length) { box.innerHTML = '<div class="no-entries">Not a member of any project yet.</div>'; return; }
+            box.innerHTML = projects.map(p => `
+                <div class="ep-proj" data-pid="${p.id}">
+                    <div class="ep-head">
+                        <span class="ep-caret">▸</span>
+                        <span class="ep-name">${esc(p.name)}</span>
+                        <span class="pill ${p.status}">${p.status}</span>
+                        <span class="ep-count">${p.my_done}/${p.my_tasks} task${p.my_tasks == 1 ? '' : 's'} done</span>
+                    </div>
+                    <div class="ep-body hidden"></div>
+                </div>`).join('');
+            box.querySelectorAll('.ep-proj').forEach(row => {
+                row.querySelector('.ep-head').onclick = () => toggleEmpProject(empId, row);
+            });
+        }
+
+        async function toggleEmpProject(empId, row) {
+            const body = row.querySelector('.ep-body');
+            const caret = row.querySelector('.ep-caret');
+            if (!body.classList.contains('hidden')) { body.classList.add('hidden'); caret.textContent = '▸'; return; }
+            caret.textContent = '▾';
+            body.classList.remove('hidden');
+            if (body.dataset.loaded) return;
+            body.innerHTML = '<div class="no-entries" style="margin:8px 0;">Loading tasks…</div>';
+            let tasks = [];
+            try { tasks = (await api('/api/reports/employees/' + empId + '/projects/' + row.dataset.pid + '/tasks')).tasks; }
+            catch (e) { body.innerHTML = `<div class="no-entries">${esc(e.message)}</div>`; return; }
+            body.dataset.loaded = '1';
+            if (!tasks.length) { body.innerHTML = '<div class="no-entries" style="margin:8px 0;">No tasks assigned to them in this project.</div>'; return; }
+            body.innerHTML = tasks.map(t => `
+                <div class="ep-task">
+                    <div class="ep-task-top">
+                        ${statusPill(t.status)}
+                        <span class="ep-task-name">${esc(t.title)}</span>
+                        <span class="pctnum">${t.completion || 0}%</span>
+                    </div>
+                    <div class="ep-updates">
+                        ${(t.updates || []).length ? t.updates.map(u => `
+                            <div class="ep-update">
+                                <span class="ep-u-meta"><b>${esc(u.author || 'Someone')}</b> · ${new Date(u.created_at).toLocaleDateString()}</span>
+                                <span class="ep-u-body">${esc(u.body)}</span>
+                                ${u.attachment_note ? `<span class="ep-u-attach">Attachment: ${esc(u.attachment_note)}</span>` : ''}
+                            </div>`).join('') : '<div class="ep-noupdate">No work updates on this task yet.</div>'}
+                    </div>
+                </div>`).join('');
         }
 
         // Admin only — permanently wipe an employee's work-update history.

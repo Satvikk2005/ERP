@@ -101,4 +101,45 @@ router.delete('/employees/:id/history', requireAuth, requireRole('admin'), async
   }
 });
 
+// GET /api/reports/employees/:id/projects — the projects this employee is a
+// member of, with how many of their tasks are done. (manager/admin)
+router.get('/employees/:id/projects', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db.query(
+    `SELECT p.id, p.name, p.status, p.department, p.priority,
+            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.assignee_id = $1) AS my_tasks,
+            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.assignee_id = $1 AND t.status = 'done') AS my_done
+     FROM projects p
+     JOIN project_members pm ON pm.project_id = p.id AND pm.employee_id = $1
+     ORDER BY p.updated_at DESC`,
+    [id]
+  );
+  res.json({ projects: rows });
+});
+
+// GET /api/reports/employees/:id/projects/:pid/tasks — this employee's tasks in
+// one project, each with its completion state and its work-update comments.
+router.get('/employees/:id/projects/:pid/tasks', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+  const { id, pid } = req.params;
+  const { rows: tasks } = await db.query(
+    `SELECT t.id, t.title, t.status, t.completion, t.priority, t.task_date
+     FROM tasks t WHERE t.project_id = $1 AND t.assignee_id = $2
+     ORDER BY (t.status = 'done'), t.created_at`,
+    [pid, id]
+  );
+  const ids = tasks.map((t) => t.id);
+  const byTask = {};
+  if (ids.length) {
+    const { rows: subs } = await db.query(
+      `SELECT s.task_id, s.body, s.attachment_note, s.created_at, e.name AS author
+       FROM task_submissions s LEFT JOIN employees e ON e.id = s.employee_id
+       WHERE s.task_id = ANY($1) ORDER BY s.created_at DESC`,
+      [ids]
+    );
+    subs.forEach((s) => { (byTask[s.task_id] ||= []).push(s); });
+  }
+  tasks.forEach((t) => { t.updates = byTask[t.id] || []; });
+  res.json({ tasks });
+});
+
 module.exports = router;
