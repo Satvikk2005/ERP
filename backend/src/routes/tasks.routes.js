@@ -18,6 +18,16 @@ async function isMember(q, projectId, empId) {
   );
   return rows.length > 0;
 }
+// Assigning a task to someone adds them to the project (that's how people join a
+// project now — no separate member-picking step). Returns true if newly added.
+async function ensureMember(q, projectId, empId) {
+  const { rowCount } = await q.query(
+    `INSERT INTO project_members (project_id, employee_id) VALUES ($1,$2)
+     ON CONFLICT DO NOTHING`,
+    [projectId, empId]
+  );
+  return rowCount > 0;
+}
 async function logActivity(q, projectId, actorId, action, detail) {
   try {
     await q.query(
@@ -36,7 +46,8 @@ const TASK_SELECT = `
          t.assigned_by, e.name AS assigned_by_name,
          p.name AS project_name,
          (SELECT COUNT(*)::int FROM tasks s   WHERE s.parent_task_id = t.id) AS subtask_count,
-         (SELECT COUNT(*)::int FROM task_submissions c WHERE c.task_id = t.id) AS comment_count,
+         (SELECT COUNT(*)::int FROM task_submissions u WHERE u.task_id = t.id) AS update_count,
+         (SELECT COUNT(*)::int FROM task_comments c WHERE c.task_id = t.id) AS comment_count,
          (SELECT COUNT(*)::int FROM task_docs d   WHERE d.task_id = t.id) AS doc_count,
          (SELECT COUNT(*)::int FROM task_issues i WHERE i.task_id = t.id AND i.status = 'open') AS issue_count
   FROM tasks t
@@ -157,9 +168,11 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   if (!canCreate) {
     return res.status(403).json({ error: 'Only the project manager, an admin, or the task owner can add this.' });
   }
-  if (!(await isMember(db, pid, aid))) {
-    return res.status(400).json({ error: 'You can only assign tasks to members of this project.' });
-  }
+  // Verify the assignee exists, then add them to the project (auto-join).
+  const { rows: exist } = await db.query('SELECT name FROM employees WHERE id = $1', [aid]);
+  if (!exist[0]) return res.status(400).json({ error: 'That employee does not exist.' });
+  const joined = await ensureMember(db, pid, aid);
+  if (joined) await logActivity(db, pid, req.user.id, 'member_added', `added ${exist[0].name} to the project`);
 
   const priority = PRIORITIES.includes(b.priority) ? b.priority : 'none';
   const completion = Math.max(0, Math.min(100, parseInt(b.completion, 10) || 0));
@@ -241,6 +254,40 @@ router.get('/:id/submissions', requireAuth, wrap(async (req, res) => {
     [req.params.id]
   );
   res.json({ submissions: rows });
+}));
+
+// ── Comments (discussion only — NOT mirrored into the personal report) ──────
+router.get('/:id/comments', requireAuth, wrap(async (req, res) => {
+  const { rows: t } = await db.query('SELECT project_id, assignee_id FROM tasks WHERE id = $1', [req.params.id]);
+  if (!t[0]) return res.status(404).json({ error: 'Task not found.' });
+  const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
+  if (!priv && t[0].assignee_id !== req.user.id && !(await isMember(db, t[0].project_id, req.user.id))) {
+    return res.status(403).json({ error: 'Not allowed.' });
+  }
+  const { rows } = await db.query(
+    `SELECT c.id, c.body, c.created_at, e.name AS author
+     FROM task_comments c LEFT JOIN employees e ON e.id = c.employee_id
+     WHERE c.task_id = $1 ORDER BY c.created_at DESC`,
+    [req.params.id]
+  );
+  res.json({ comments: rows });
+}));
+
+router.post('/:id/comments', requireAuth, wrap(async (req, res) => {
+  const { body } = req.body || {};
+  if (!body || !body.trim()) return res.status(400).json({ error: 'Write a comment.' });
+  const { rows: t } = await db.query('SELECT project_id, assignee_id FROM tasks WHERE id = $1', [req.params.id]);
+  if (!t[0]) return res.status(404).json({ error: 'Task not found.' });
+  const priv = req.user.accessRole === 'manager' || req.user.accessRole === 'admin';
+  if (!priv && t[0].assignee_id !== req.user.id && !(await isMember(db, t[0].project_id, req.user.id))) {
+    return res.status(403).json({ error: 'Only members of this project can comment.' });
+  }
+  const { rows } = await db.query(
+    `INSERT INTO task_comments (task_id, employee_id, body) VALUES ($1,$2,$3)
+     RETURNING id, body, created_at`,
+    [req.params.id, req.user.id, body.trim().slice(0, 4000)]
+  );
+  res.status(201).json({ comment: rows[0] });
 }));
 
 // ── Docs ──────────────────────────────────────────────────────────────────
@@ -378,7 +425,9 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
   if (b.assigneeId !== undefined) {
     const aid = Number(b.assigneeId);
     if (Number.isInteger(aid)) {
-      if (!(await isMember(db, task.project_id, aid))) return res.status(400).json({ error: 'Assignee must be a project member.' });
+      const { rows: ex } = await db.query('SELECT 1 FROM employees WHERE id = $1', [aid]);
+      if (!ex[0]) return res.status(400).json({ error: 'That employee does not exist.' });
+      await ensureMember(db, task.project_id, aid);   // reassigning also adds them to the project
       put('assignee_id', aid);
     }
   }
@@ -398,18 +447,27 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
   res.json({ ok: true, task: scrubStipend(full[0], req.user) });
 }));
 
-// DELETE /api/tasks/:id/comments — clear the whole comment thread on a task.
-// Only the project manager or an admin. Irreversible.
-router.delete('/:id/comments', requireAuth, wrap(async (req, res) => {
+// Clear the whole work-update log or discussion thread on a task. Project
+// manager or admin only. Irreversible.
+async function requireTaskManager(req, res) {
   const { rows } = await db.query(
     'SELECT t.project_id, p.manager_id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE t.id = $1',
     [req.params.id]
   );
-  if (!rows[0]) return res.status(404).json({ error: 'Task not found.' });
+  if (!rows[0]) { res.status(404).json({ error: 'Task not found.' }); return false; }
   if (req.user.id !== rows[0].manager_id && req.user.accessRole !== 'admin') {
-    return res.status(403).json({ error: 'Only the project manager or an admin can clear comments.' });
+    res.status(403).json({ error: 'Only the project manager or an admin can do this.' }); return false;
   }
+  return true;
+}
+router.delete('/:id/submissions', requireAuth, wrap(async (req, res) => {
+  if (!(await requireTaskManager(req, res))) return;
   const { rowCount } = await db.query('DELETE FROM task_submissions WHERE task_id = $1', [req.params.id]);
+  res.json({ ok: true, deleted: rowCount });
+}));
+router.delete('/:id/comments', requireAuth, wrap(async (req, res) => {
+  if (!(await requireTaskManager(req, res))) return;
+  const { rowCount } = await db.query('DELETE FROM task_comments WHERE task_id = $1', [req.params.id]);
   res.json({ ok: true, deleted: rowCount });
 }));
 
