@@ -10,6 +10,7 @@ const employeesRoutes = require('./routes/employees.routes');
 const reportsRoutes = require('./routes/reports.routes');
 const projectsRoutes = require('./routes/projects.routes');
 const tasksRoutes = require('./routes/tasks.routes');
+const leavesRoutes = require('./routes/leaves.routes');
 const { initDb } = require('./init');
 
 // A rejected promise in an async route handler isn't caught by Express 4's
@@ -64,6 +65,7 @@ app.use('/api/employees', employeesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/leaves', leavesRoutes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));

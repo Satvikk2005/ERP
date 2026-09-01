@@ -45,6 +45,15 @@ const TASK_SELECT = `
   LEFT JOIN projects  p ON p.id = t.project_id
 `;
 
+// Only admins and HR may see (or set) the stipend flag. Strip it from task
+// payloads for everyone else so it never reaches their UI.
+function canSeeStipend(user) { return user.accessRole === 'admin' || user.accessRole === 'hr'; }
+function scrubStipend(data, user) {
+  if (canSeeStipend(user)) return data;
+  const strip = (t) => { if (t && typeof t === 'object') delete t.stipend; return t; };
+  return Array.isArray(data) ? data.map(strip) : strip(data);
+}
+
 // Can this user edit the task's fields? (assignee, the project's manager, or an admin)
 async function canEditTask(task, user) {
   if (user.accessRole === 'admin') return true;
@@ -66,7 +75,7 @@ router.get('/mine', requireAuth, wrap(async (req, res) => {
      ORDER BY (t.status = 'done'), t.task_date DESC NULLS LAST, t.created_at DESC`,
     [req.user.id]
   );
-  res.json({ tasks: rows });
+  res.json({ tasks: scrubStipend(rows, req.user) });
 }));
 
 // GET /api/tasks?projectId= — top-level tasks within a project.
@@ -90,7 +99,7 @@ router.get('/', requireAuth, wrap(async (req, res) => {
      ORDER BY (t.status = 'done'), t.created_at`,
     params
   );
-  res.json({ tasks: rows, canManage: seesAll });
+  res.json({ tasks: scrubStipend(rows, req.user), canManage: seesAll });
 }));
 
 // GET /api/tasks/:id — one task with all its fields (for the task panel).
@@ -102,7 +111,7 @@ router.get('/:id', requireAuth, wrap(async (req, res) => {
   if (!priv && task.assignee_id !== req.user.id && !(await isMember(db, task.project_id, req.user.id))) {
     return res.status(403).json({ error: 'Not allowed.' });
   }
-  res.json({ task });
+  res.json({ task: scrubStipend(task, req.user) });
 }));
 
 // GET /api/tasks/:id/subtasks — the child tasks of a task.
@@ -117,7 +126,7 @@ router.get('/:id/subtasks', requireAuth, wrap(async (req, res) => {
     `${TASK_SELECT} WHERE t.parent_task_id = $1 ORDER BY (t.status = 'done'), t.created_at`,
     [req.params.id]
   );
-  res.json({ tasks: rows });
+  res.json({ tasks: scrubStipend(rows, req.user) });
 }));
 
 // POST /api/tasks — assign a task (project manager / admin), or add a subtask
@@ -161,14 +170,14 @@ router.post('/', requireAuth, wrap(async (req, res) => {
     [pid, parentId, aid, req.user.id, b.date || null, b.startDate || null,
      (b.duration || '').trim().slice(0, 40) || null, b.title.trim().slice(0, 300),
      (b.details || '').trim().slice(0, 4000), priority, completion,
-     (b.tags || '').trim().slice(0, 300) || null, !!b.stipend]
+     (b.tags || '').trim().slice(0, 300) || null, canSeeStipend(req.user) ? !!b.stipend : false]
   );
   const { rows: full } = await db.query(`${TASK_SELECT} WHERE t.id = $1`, [rows[0].id]);
   const { rows: who } = await db.query('SELECT name FROM employees WHERE id = $1', [aid]);
   const label = parent ? `subtask "${full[0].title}" under "${parent.title}"` : `"${full[0].title}"`;
   await logActivity(db, pid, req.user.id, parent ? 'subtask_added' : 'task_assigned',
     `${parent ? 'added' : 'assigned'} ${label} to ${who[0] ? who[0].name : 'a member'}`);
-  res.status(201).json({ task: full[0] });
+  res.status(201).json({ task: scrubStipend(full[0], req.user) });
 }));
 
 // POST /api/tasks/:id/submit — post a work-update comment (any project member).
@@ -362,7 +371,7 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
   if (b.title !== undefined && b.title.trim()) put('title', b.title.trim().slice(0, 300));
   if (b.details !== undefined) put('details', (b.details || '').trim().slice(0, 4000));
   if (b.tags !== undefined) put('tags', (b.tags || '').trim().slice(0, 300) || null);
-  if (b.stipend !== undefined) put('stipend', !!b.stipend);
+  if (b.stipend !== undefined && canSeeStipend(req.user)) put('stipend', !!b.stipend);
   if (b.duration !== undefined) put('duration', (b.duration || '').trim().slice(0, 40) || null);
   if (b.date !== undefined) put('task_date', b.date || null);
   if (b.startDate !== undefined) put('start_date', b.startDate || null);
@@ -386,7 +395,7 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
   params.push(req.params.id);
   await db.query(`UPDATE tasks SET ${sets.join(', ')}, updated_at = now() WHERE id = $${params.length}`, params);
   const { rows: full } = await db.query(`${TASK_SELECT} WHERE t.id = $1`, [req.params.id]);
-  res.json({ ok: true, task: full[0] });
+  res.json({ ok: true, task: scrubStipend(full[0], req.user) });
 }));
 
 // DELETE /api/tasks/:id/comments — clear the whole comment thread on a task.

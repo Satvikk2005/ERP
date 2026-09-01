@@ -7,7 +7,7 @@ const router = express.Router();
 
 // GET /api/reports/employees?department=Marketing — manager/admin only.
 // Returns every employee with their current engagement score for the sidebar list.
-router.get('/employees', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+router.get('/employees', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
   const { department } = req.query;
   const params = [];
   let where = '';
@@ -43,7 +43,7 @@ router.get('/employees', requireAuth, requireRole('manager', 'admin'), async (re
 });
 
 // GET /api/reports/employees/:id?from=&to= — manager/admin only. Full history + stats.
-router.get('/employees/:id', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+router.get('/employees/:id', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
   const { id } = req.params;
   const { from, to } = req.query;
 
@@ -103,7 +103,7 @@ router.delete('/employees/:id/history', requireAuth, requireRole('admin'), async
 
 // GET /api/reports/employees/:id/projects — the projects this employee is a
 // member of, with how many of their tasks are done. (manager/admin)
-router.get('/employees/:id/projects', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+router.get('/employees/:id/projects', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
   const { id } = req.params;
   const { rows } = await db.query(
     `SELECT p.id, p.name, p.status, p.department, p.priority,
@@ -119,7 +119,7 @@ router.get('/employees/:id/projects', requireAuth, requireRole('manager', 'admin
 
 // GET /api/reports/employees/:id/projects/:pid/tasks — this employee's tasks in
 // one project, each with its completion state and its work-update comments.
-router.get('/employees/:id/projects/:pid/tasks', requireAuth, requireRole('manager', 'admin'), async (req, res) => {
+router.get('/employees/:id/projects/:pid/tasks', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
   const { id, pid } = req.params;
   const { rows: tasks } = await db.query(
     `SELECT t.id, t.title, t.status, t.completion, t.priority, t.task_date
@@ -140,6 +140,34 @@ router.get('/employees/:id/projects/:pid/tasks', requireAuth, requireRole('manag
   }
   tasks.forEach((t) => { t.updates = byTask[t.id] || []; });
   res.json({ tasks });
+});
+
+// GET /api/reports/employees/:id/calendar?from=&to= — for the report calendar:
+// the days this employee was on leave and the days they filed a work report,
+// within the given range. (manager/admin/hr)
+router.get('/employees/:id/calendar', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
+  const { id } = req.params;
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'from and to dates are required.' });
+
+  // Work-report days (work_entries with a date in range).
+  const { rows: reps } = await db.query(
+    `SELECT DISTINCT entry_date FROM work_entries
+     WHERE employee_id = $1 AND entry_date BETWEEN $2 AND $3`,
+    [id, from, to]
+  );
+  const reportDays = reps.map((r) => r.entry_date);
+
+  // Expand each overlapping leave range into individual days within [from,to].
+  const { rows: leaves } = await db.query(
+    `SELECT generate_series(GREATEST(start_date, $2::date), LEAST(end_date, $3::date), interval '1 day')::date AS d
+     FROM leave_requests
+     WHERE employee_id = $1 AND start_date <= $3::date AND end_date >= $2::date`,
+    [id, from, to]
+  );
+  const leaveDays = [...new Set(leaves.map((r) => r.d))];
+
+  res.json({ reportDays, leaveDays });
 });
 
 module.exports = router;

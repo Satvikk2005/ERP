@@ -27,7 +27,7 @@ router.post('/', requireAuth, requireRole('manager', 'admin'), async (req, res) 
   if (!name || !email || !department || !jobTitle || !employeeCode) {
     return res.status(400).json({ error: 'name, email, department, jobTitle, employeeCode are required.' });
   }
-  let role = ['employee', 'manager', 'admin'].includes(accessRole) ? accessRole : 'employee';
+  let role = ['employee', 'manager', 'admin', 'hr'].includes(accessRole) ? accessRole : 'employee';
   if (req.user.accessRole !== 'admin') role = 'employee';
 
   const tempPassword = crypto.randomBytes(9).toString('base64url'); // 12-char random string
