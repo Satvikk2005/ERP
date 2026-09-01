@@ -157,7 +157,7 @@
 
         /* ── MODAL ── */
         #modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(43, 38, 32, .5); backdrop-filter: blur(4px);
-            z-index: 2000; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+            z-index: 2200; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
         #modal-backdrop.open { display: flex; }
         .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%;
             box-shadow: 0 24px 60px rgba(60, 45, 10, .22); max-width: 520px; }
@@ -1214,7 +1214,6 @@
                     <div class="form-error hidden" id="wu-err"></div>
                     <div class="modal-actions" style="justify-content:flex-start;">
                         <button class="btn btn-primary" id="wu-post" style="flex:none;">Push work update</button>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);"><input type="checkbox" id="wu-done" style="width:15px;height:15px;accent-color:var(--brand);"> mark task done</label>
                     </div>
                     <div class="toolbar" style="margin:18px 0 8px;"><div class="section-title">Update history</div>
                         ${canClear ? '<button class="btn btn-danger" id="wu-clear" style="padding:5px 10px;font-size:11.5px;">Clear history</button>' : ''}</div>
@@ -1229,7 +1228,6 @@
                 try {
                     await api('/api/tasks/' + t.id + '/submit', { method: 'POST', body: JSON.stringify({
                         body: bodyText, attachmentNote: document.getElementById('wu-doc').value.trim() }) });
-                    if (document.getElementById('wu-done').checked) await api('/api/tasks/' + t.id, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) });
                     document.getElementById('wu-body').value = ''; document.getElementById('wu-doc').value = '';
                     await refreshTask(); loadWorkUpdates(t.id);
                 } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Push work update'; }
