@@ -517,6 +517,12 @@
         .emp-list .emp-item:hover { background: var(--bg); }
         .emp-list .emp-sub { color: var(--ink-soft); font-size: 11px; }
         .emp-list .emp-empty { padding: 14px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+        .emp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .emp-chips:empty { display: none; }
+        .emp-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-soft); color: var(--brand-deep);
+            border: 1px solid var(--border); border-radius: 20px; padding: 4px 6px 4px 4px; font-size: 12.5px; font-weight: 600; }
+        .emp-chip button { background: none; border: none; color: var(--brand-deep); cursor: pointer; font-size: 12px; padding: 0 2px; line-height: 1; }
+        .emp-chip button:hover { color: var(--red); }
 
         /* ── user detail: compact meta + projects/tasks/updates drill-down ── */
         .u-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 14px; margin-bottom: 18px;
@@ -796,6 +802,17 @@
             const v = Math.max(0, Math.min(100, parseInt(pct, 10) || 0));
             return `<div class="pctwrap"><div class="pcttrack"><div class="pctfill" style="width:${v}%"></div></div><span class="pctnum">${v}%</span></div>`;
         }
+        // Owner cell: first assignee + "+N" for a collective task.
+        function ownerCell(t) {
+            const a = (t.assignees && t.assignees.length) ? t.assignees : (t.assignee_name ? [{ name: t.assignee_name }] : []);
+            if (!a.length) return '<span class="muted">Unassigned</span>';
+            const extra = a.length > 1 ? ` <span class="muted">+${a.length - 1}</span>` : '';
+            return `<span class="pt-owner"><span class="avatar">${initials(a[0].name)}</span>${esc(a[0].name)}${extra}</span>`;
+        }
+        function assigneeNames(t) {
+            const a = (t.assignees && t.assignees.length) ? t.assignees.map(x => x.name) : (t.assignee_name ? [t.assignee_name] : []);
+            return a.join(', ');
+        }
         function fmtDay(iso) { return iso ? new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; }
         function timelineText(p) {
             if (p.start_date && p.end_date) return fmtDay(p.start_date) + '  →  ' + fmtDay(p.end_date);
@@ -1065,9 +1082,10 @@
             const ro = canEdit ? '' : 'disabled';
             const prioOpts = ['none', 'low', 'medium', 'high'].map(p =>
                 `<option value="${p}" ${t.priority === p ? 'selected' : ''}>${p === 'none' ? 'None' : p[0].toUpperCase() + p.slice(1)}</option>`).join('');
-            const ownerField = (canManage && DRAWER.members)
+            const nAssignees = (t.assignees || []).length;
+            const ownerField = (canManage && DRAWER.members && nAssignees <= 1)
                 ? `<select class="dw-inp" id="f-owner" ${ro}>${DRAWER.members.map(m => `<option value="${m.id}" ${m.id === t.assignee_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>`
-                : `<div class="dw-val">${t.assignee_name ? esc(t.assignee_name) : '—'}</div>`;
+                : `<div class="dw-val">${assigneeNames(t) ? esc(assigneeNames(t)) : '—'}</div>`;
             drawerEl.innerHTML = `
                 <div class="dw-head">
                     <div style="min-width:0;">
@@ -1083,7 +1101,7 @@
                     <div class="dw-info">
                         <div class="frow"><div class="fk">Status</div><div class="fv">
                             <select class="dw-inp" id="f-status" ${ro}><option value="pending" ${t.status !== 'done' ? 'selected' : ''}>Open</option><option value="done" ${t.status === 'done' ? 'selected' : ''}>Done</option></select></div></div>
-                        <div class="frow"><div class="fk">Owner</div><div class="fv">${ownerField}</div></div>
+                        <div class="frow"><div class="fk">Assignee${nAssignees > 1 ? 's' : ''}</div><div class="fv">${ownerField}</div></div>
                         <div class="frow"><div class="fk">Priority</div><div class="fv"><select class="dw-inp" id="f-priority" ${ro}>${prioOpts}</select></div></div>
                         <div class="frow"><div class="fk">Completion %</div><div class="fv"><input class="dw-inp" id="f-completion" type="number" min="0" max="100" value="${t.completion || 0}" ${ro}></div></div>
                         <div class="frow"><div class="fk">Start Date</div><div class="fv"><input class="dw-inp" id="f-start" type="date" value="${t.start_date || ''}" ${ro}></div></div>
@@ -1933,7 +1951,7 @@
                     <tr data-task="${t.id}">
                         <td class="pt-id">T-${t.id}</td>
                         <td><div class="pt-name">${esc(t.title)}</div>${t.details ? '<div class="tt-sub">' + esc(t.details) + '</div>' : ''}</td>
-                        <td>${t.assignee_name ? '<span class="pt-owner"><span class="avatar">' + initials(t.assignee_name) + '</span>' + esc(t.assignee_name) + '</span>' : '<span class="muted">Unassigned</span>'}</td>
+                        <td>${ownerCell(t)}</td>
                         <td>${statusPill(t.status)}</td>
                         <td>${priorityTag(t.priority)}</td>
                         <td>${tagChips(t.tags)}</td>
@@ -1960,27 +1978,34 @@
             });
         }
 
-        // A search-as-you-type employee picker (used for task assignment). Writes
-        // the chosen employee id into the hidden input `hiddenId`.
-        function wireEmpCombo(searchId, hiddenId, listId) {
+        // Multi-select, search-as-you-type employee picker for task assignment.
+        // Maintains the chosen ids in the passed Set and renders removable chips.
+        function wireEmpMulti(searchId, listId, chipsId, chosen) {
             const search = document.getElementById(searchId);
-            const hidden = document.getElementById(hiddenId);
             const list = document.getElementById(listId);
-            const render = (q = '') => {
+            const chips = document.getElementById(chipsId);
+            const renderChips = () => {
+                chips.innerHTML = [...chosen].map(id => {
+                    const e = EMPLOYEES.find(x => x.id === id); if (!e) return '';
+                    return `<span class="emp-chip"><span class="avatar" style="width:18px;height:18px;font-size:9px;">${initials(e.name)}</span>${esc(e.name)}<button type="button" data-rm="${id}">✕</button></span>`;
+                }).join('');
+                chips.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { chosen.delete(Number(b.dataset.rm)); renderChips(); });
+            };
+            const renderList = (q = '') => {
                 const ql = q.toLowerCase();
-                const items = EMPLOYEES.filter(e => e.name.toLowerCase().includes(ql) || (e.department || '').toLowerCase().includes(ql));
+                const items = EMPLOYEES.filter(e => !chosen.has(e.id) && (e.name.toLowerCase().includes(ql) || (e.department || '').toLowerCase().includes(ql)));
                 list.innerHTML = items.length ? items.map(e => `
                     <div class="emp-item" data-id="${e.id}"><span class="avatar">${initials(e.name)}</span>
                         <span><b>${esc(e.name)}</b><span class="emp-sub"> · ${esc(e.department)} · ${esc(e.job_title || '')}</span></span></div>`).join('')
                     : '<div class="emp-empty">No matching employees.</div>';
                 list.querySelectorAll('.emp-item').forEach(it => it.onclick = () => {
-                    const e = EMPLOYEES.find(x => x.id == it.dataset.id);
-                    hidden.value = e.id; search.value = e.name; list.classList.add('hidden');
+                    chosen.add(Number(it.dataset.id)); search.value = ''; renderChips(); renderList(''); search.focus();
                 });
             };
-            search.onfocus = () => { render(search.value); list.classList.remove('hidden'); };
-            search.oninput = () => { hidden.value = ''; render(search.value); list.classList.remove('hidden'); };
+            search.onfocus = () => { renderList(search.value); list.classList.remove('hidden'); };
+            search.oninput = () => { renderList(search.value); list.classList.remove('hidden'); };
             document.addEventListener('click', (ev) => { if (!ev.target.closest('#' + listId) && ev.target !== search) list.classList.add('hidden'); });
+            renderChips();
         }
 
         function openAddTaskModal(p) {
@@ -1989,24 +2014,22 @@
                 <div class="modal-body">
                     <div class="field"><label>Task title</label><input type="text" id="at-title" placeholder="e.g. Draft the launch email"></div>
                     <div class="field"><label>Description (optional)</label><textarea class="field-ta" id="at-details" placeholder="Any specifics"></textarea></div>
-                    <div class="row2">
-                        <div class="field"><label>Assign to</label>
-                            <div class="emp-combo">
-                                <input type="text" id="at-emp-search" placeholder="Search employee…" autocomplete="off">
-                                <input type="hidden" id="at-assignee">
-                                <div id="at-emp-list" class="emp-list hidden"></div>
-                            </div>
+                    <div class="field"><label>Assign to (one or more people)</label>
+                        <div id="at-chips" class="emp-chips"></div>
+                        <div class="emp-combo">
+                            <input type="text" id="at-emp-search" placeholder="Search and add employees…" autocomplete="off">
+                            <div id="at-emp-list" class="emp-list hidden"></div>
                         </div>
+                    </div>
+                    <div class="row2">
                         <div class="field"><label>Priority</label><select id="at-priority"><option value="none">None</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+                        <div class="field"><label>Duration</label><input type="text" id="at-duration" placeholder="e.g. 2 days"></div>
                     </div>
                     <div class="row2">
                         <div class="field"><label>Start date</label><input type="date" id="at-start"></div>
                         <div class="field"><label>Due date</label><input type="date" id="at-date"></div>
                     </div>
-                    <div class="row2">
-                        <div class="field"><label>Duration</label><input type="text" id="at-duration" placeholder="e.g. 2 days"></div>
-                        ${canSeeStipend() ? `<div class="field"><label>Stipend</label><select id="at-stipend"><option value="no">No</option><option value="yes">Yes</option></select></div>` : '<div class="field"></div>'}
-                    </div>
+                    ${canSeeStipend() ? `<div class="field"><label>Stipend</label><select id="at-stipend"><option value="no">No</option><option value="yes">Yes</option></select></div>` : ''}
                     <div class="field"><label>Tags (comma separated)</label><input type="text" id="at-tags" placeholder="design, urgent"></div>
                     <div class="form-error hidden" id="at-err"></div>
                     <div class="modal-actions">
@@ -2014,17 +2037,17 @@
                         <button class="btn btn-primary" id="at-go">Assign task</button>
                     </div>
                 </div>`);
-            wireEmpCombo('at-emp-search', 'at-assignee', 'at-emp-list');
+            const atAssignees = new Set();
+            wireEmpMulti('at-emp-search', 'at-emp-list', 'at-chips', atAssignees);
             document.getElementById('at-go').onclick = async () => {
                 const err = document.getElementById('at-err'); err.classList.add('hidden');
                 const title = document.getElementById('at-title').value.trim();
                 if (!title) { err.textContent = 'Enter a task title.'; err.classList.remove('hidden'); return; }
-                const assignee = Number(document.getElementById('at-assignee').value);
-                if (!assignee) { err.textContent = 'Search and pick an employee to assign.'; err.classList.remove('hidden'); return; }
+                if (!atAssignees.size) { err.textContent = 'Search and add at least one person.'; err.classList.remove('hidden'); return; }
                 const btn = document.getElementById('at-go'); btn.disabled = true; btn.textContent = 'Assigning…';
                 try {
                     await api('/api/tasks', { method: 'POST', body: JSON.stringify({
-                        projectId: p.id, assigneeId: assignee,
+                        projectId: p.id, assigneeIds: [...atAssignees],
                         title, details: document.getElementById('at-details').value.trim(),
                         priority: document.getElementById('at-priority').value,
                         startDate: document.getElementById('at-start').value || null,

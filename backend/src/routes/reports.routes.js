@@ -107,8 +107,10 @@ router.get('/employees/:id/projects', requireAuth, requireRole('manager', 'admin
   const { id } = req.params;
   const { rows } = await db.query(
     `SELECT p.id, p.name, p.status, p.department, p.priority,
-            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.assignee_id = $1) AS my_tasks,
-            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.assignee_id = $1 AND t.status = 'done') AS my_done
+            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id
+               AND (t.assignee_id = $1 OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.employee_id = $1))) AS my_tasks,
+            (SELECT COUNT(*)::int FROM tasks t WHERE t.project_id = p.id AND t.status = 'done'
+               AND (t.assignee_id = $1 OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.employee_id = $1))) AS my_done
      FROM projects p
      JOIN project_members pm ON pm.project_id = p.id AND pm.employee_id = $1
      ORDER BY p.updated_at DESC`,
@@ -123,7 +125,8 @@ router.get('/employees/:id/projects/:pid/tasks', requireAuth, requireRole('manag
   const { id, pid } = req.params;
   const { rows: tasks } = await db.query(
     `SELECT t.id, t.title, t.status, t.completion, t.priority, t.task_date
-     FROM tasks t WHERE t.project_id = $1 AND t.assignee_id = $2
+     FROM tasks t WHERE t.project_id = $1
+       AND (t.assignee_id = $2 OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.employee_id = $2))
      ORDER BY (t.status = 'done'), t.created_at`,
     [pid, id]
   );

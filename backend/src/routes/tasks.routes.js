@@ -28,6 +28,15 @@ async function ensureMember(q, projectId, empId) {
   );
   return rowCount > 0;
 }
+// SQL predicate: employee $n is an assignee of task alias `t` (primary or in the
+// task_assignees set). Used to scope "my tasks" and project-board visibility.
+const assigneeOf = (alias, n) =>
+  `(${alias}.assignee_id = $${n} OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = ${alias}.id AND ta.employee_id = $${n}))`;
+async function isAssignee(taskId, empId) {
+  const { rows } = await db.query(
+    `SELECT 1 FROM tasks t WHERE t.id = $1 AND ${assigneeOf('t', 2)}`, [taskId, empId]);
+  return rows.length > 0;
+}
 async function logActivity(q, projectId, actorId, action, detail) {
   try {
     await q.query(
@@ -45,6 +54,9 @@ const TASK_SELECT = `
          t.assignee_id, a.name AS assignee_name, a.employee_code AS assignee_code,
          t.assigned_by, e.name AS assigned_by_name,
          p.name AS project_name,
+         COALESCE((SELECT json_agg(json_build_object('id', ae.id, 'name', ae.name) ORDER BY ae.name)
+                   FROM task_assignees ta JOIN employees ae ON ae.id = ta.employee_id
+                   WHERE ta.task_id = t.id), '[]'::json) AS assignees,
          (SELECT COUNT(*)::int FROM tasks s   WHERE s.parent_task_id = t.id) AS subtask_count,
          (SELECT COUNT(*)::int FROM task_submissions u WHERE u.task_id = t.id) AS update_count,
          (SELECT COUNT(*)::int FROM task_comments c WHERE c.task_id = t.id) AS comment_count,
@@ -65,13 +77,13 @@ function scrubStipend(data, user) {
   return Array.isArray(data) ? data.map(strip) : strip(data);
 }
 
-// Can this user edit the task's fields? (assignee, the project's manager, or an admin)
+// Can this user edit the task's fields? (any assignee, the project's manager, or an admin)
 async function canEditTask(task, user) {
-  if (user.accessRole === 'admin') return true;
+  if (user.accessRole === 'admin' || user.accessRole === 'manager') return true;
   if (task.assignee_id === user.id) return true;
+  if (await isAssignee(task.id, user.id)) return true;
   const mgr = await projectManagerId(db, task.project_id);
   if (mgr === user.id) return true;
-  if (user.accessRole === 'manager') return true;
   return false;
 }
 
@@ -81,7 +93,7 @@ async function canEditTask(task, user) {
 router.get('/mine', requireAuth, wrap(async (req, res) => {
   const { rows } = await db.query(
     `${TASK_SELECT}
-     WHERE t.assignee_id = $1
+     WHERE ${assigneeOf('t', 1)}
        AND NOT (t.status = 'done' AND t.completed_at IS NOT NULL AND t.completed_at::date < CURRENT_DATE)
      ORDER BY (t.status = 'done'), t.task_date DESC NULLS LAST, t.created_at DESC`,
     [req.user.id]
@@ -104,7 +116,7 @@ router.get('/', requireAuth, wrap(async (req, res) => {
   }
   const params = [projectId];
   let scope = '';
-  if (!seesAll) { params.push(req.user.id); scope = ` AND t.assignee_id = $${params.length}`; }
+  if (!seesAll) { params.push(req.user.id); scope = ` AND ${assigneeOf('t', params.length)}`; }
   const { rows } = await db.query(
     `${TASK_SELECT} WHERE t.project_id = $1 AND t.parent_task_id IS NULL${scope}
      ORDER BY (t.status = 'done'), t.created_at`,
@@ -158,8 +170,10 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   if (!Number.isInteger(pid)) return res.status(400).json({ error: 'A project is required.' });
   if (!b.title || !b.title.trim()) return res.status(400).json({ error: 'Task title is required.' });
 
-  const aid = Number(b.assigneeId);
-  if (!Number.isInteger(aid)) return res.status(400).json({ error: 'An assignee is required.' });
+  // One or more assignees. Accepts assigneeIds (array) or a single assigneeId.
+  const rawIds = Array.isArray(b.assigneeIds) ? b.assigneeIds : (b.assigneeId != null ? [b.assigneeId] : []);
+  const ids = [...new Set(rawIds.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (!ids.length) return res.status(400).json({ error: 'Pick at least one person to assign.' });
 
   const mgr = await projectManagerId(db, pid);
   if (mgr == null) return res.status(404).json({ error: 'Project not found.' });
@@ -168,12 +182,15 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   if (!canCreate) {
     return res.status(403).json({ error: 'Only the project manager, an admin, or the task owner can add this.' });
   }
-  // Verify the assignee exists, then add them to the project (auto-join).
-  const { rows: exist } = await db.query('SELECT name FROM employees WHERE id = $1', [aid]);
-  if (!exist[0]) return res.status(400).json({ error: 'That employee does not exist.' });
-  const joined = await ensureMember(db, pid, aid);
-  if (joined) await logActivity(db, pid, req.user.id, 'member_added', `added ${exist[0].name} to the project`);
+  // Verify assignees exist, then add each to the project (auto-join).
+  const { rows: emps } = await db.query('SELECT id, name FROM employees WHERE id = ANY($1)', [ids]);
+  if (emps.length !== ids.length) return res.status(400).json({ error: 'One of the selected people does not exist.' });
+  for (const emp of emps) {
+    const joined = await ensureMember(db, pid, emp.id);
+    if (joined) await logActivity(db, pid, req.user.id, 'member_added', `added ${emp.name} to the project`);
+  }
 
+  const aid = ids[0];   // first pick is the primary owner (display)
   const priority = PRIORITIES.includes(b.priority) ? b.priority : 'none';
   const completion = Math.max(0, Math.min(100, parseInt(b.completion, 10) || 0));
   const { rows } = await db.query(
@@ -185,11 +202,15 @@ router.post('/', requireAuth, wrap(async (req, res) => {
      (b.details || '').trim().slice(0, 4000), priority, completion,
      (b.tags || '').trim().slice(0, 300) || null, canSeeStipend(req.user) ? !!b.stipend : false]
   );
-  const { rows: full } = await db.query(`${TASK_SELECT} WHERE t.id = $1`, [rows[0].id]);
-  const { rows: who } = await db.query('SELECT name FROM employees WHERE id = $1', [aid]);
+  const taskId = rows[0].id;
+  for (const id of ids) {
+    await db.query('INSERT INTO task_assignees (task_id, employee_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [taskId, id]);
+  }
+  const { rows: full } = await db.query(`${TASK_SELECT} WHERE t.id = $1`, [taskId]);
+  const names = emps.map((e) => e.name).join(', ');
   const label = parent ? `subtask "${full[0].title}" under "${parent.title}"` : `"${full[0].title}"`;
   await logActivity(db, pid, req.user.id, parent ? 'subtask_added' : 'task_assigned',
-    `${parent ? 'added' : 'assigned'} ${label} to ${who[0] ? who[0].name : 'a member'}`);
+    `${parent ? 'added' : 'assigned'} ${label} to ${names}`);
   res.status(201).json({ task: scrubStipend(full[0], req.user) });
 }));
 
@@ -428,7 +449,20 @@ router.patch('/:id', requireAuth, wrap(async (req, res) => {
       const { rows: ex } = await db.query('SELECT 1 FROM employees WHERE id = $1', [aid]);
       if (!ex[0]) return res.status(400).json({ error: 'That employee does not exist.' });
       await ensureMember(db, task.project_id, aid);   // reassigning also adds them to the project
+      await db.query('INSERT INTO task_assignees (task_id, employee_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [task.id, aid]);
       put('assignee_id', aid);
+    }
+  }
+  // Replace the whole assignee set (collective task edit).
+  if (Array.isArray(b.assigneeIds)) {
+    const ids = [...new Set(b.assigneeIds.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (ids.length) {
+      const { rows: emps } = await db.query('SELECT id FROM employees WHERE id = ANY($1)', [ids]);
+      if (emps.length !== ids.length) return res.status(400).json({ error: 'One of the selected people does not exist.' });
+      for (const id of ids) await ensureMember(db, task.project_id, id);
+      await db.query('DELETE FROM task_assignees WHERE task_id = $1', [task.id]);
+      for (const id of ids) await db.query('INSERT INTO task_assignees (task_id, employee_id) VALUES ($1,$2)', [task.id, id]);
+      if (!ids.includes(task.assignee_id)) put('assignee_id', ids[0]);   // keep primary valid
     }
   }
   // Stamp (or clear) the completion time whenever the effective status flips,
