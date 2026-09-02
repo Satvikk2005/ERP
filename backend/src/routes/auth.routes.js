@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, activeGrant } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -94,6 +94,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
   );
 
+  const grant = await activeGrant(user.id);
   res.json({
     token,
     user: {
@@ -103,7 +104,9 @@ router.post('/login', loginLimiter, async (req, res) => {
       email: user.email,
       department: user.department,
       jobTitle: user.job_title,
-      accessRole: user.access_role,
+      accessRole: grant ? grant.granted_role : user.access_role,
+      baseRole: user.access_role,
+      tempAccess: grant ? { role: grant.granted_role, expiresAt: grant.expires_at } : null,
       mustResetPassword: user.must_reset_pw,
     },
   });
@@ -140,7 +143,9 @@ router.get('/me', requireAuth, async (req, res) => {
     [req.user.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'User not found.' });
-  res.json({ user: rows[0] });
+  // req.user.accessRole already reflects any active temporary grant.
+  const user = { ...rows[0], base_role: rows[0].access_role, access_role: req.user.accessRole, temp_access: req.user.tempAccess || null };
+  res.json({ user });
 });
 
 module.exports = router;
