@@ -1809,16 +1809,8 @@
                 <div class="settings-grid">
                     <div class="set-card">
                         <div class="section-title" style="margin-bottom:14px;">Account</div>
-                        <div class="field" style="margin-bottom:12px;">
-                            <label>Name</label>
-                            <div style="display:flex;gap:8px;align-items:center;">
-                                <input type="text" id="pf-name" value="${esc(u.name)}" style="flex:1;">
-                                <button class="btn btn-primary" id="pf-name-save" style="flex-shrink:0;">Save</button>
-                            </div>
-                            <div class="form-error hidden" id="pf-name-err" style="margin-top:8px;"></div>
-                            <div class="saved-msg hidden" id="pf-name-ok" style="display:block;margin-top:8px;">Name updated.</div>
-                        </div>
                         <div class="u-meta" style="margin-bottom:0;">
+                            <span><b>Name</b> ${esc(u.name)}</span>
                             <span><b>Email</b> ${esc(u.email || '—')}</span>
                             <span><b>Department</b> ${esc(u.department || '—')}</span>
                             <span><b>Access level</b> ${roleLabel(u.baseRole || u.accessRole)}</span>
@@ -1858,20 +1850,6 @@
                         <button class="btn btn-primary" id="cp-go">Update password</button>
                     </div>
                 </div>`;
-            document.getElementById('pf-name-save').onclick = async () => {
-                const err = document.getElementById('pf-name-err'); err.classList.add('hidden');
-                const ok = document.getElementById('pf-name-ok'); ok.classList.add('hidden');
-                const name = document.getElementById('pf-name').value.trim();
-                if (name.length < 2) { err.textContent = 'Enter your name (at least 2 characters).'; err.classList.remove('hidden'); return; }
-                const btn = document.getElementById('pf-name-save'); btn.disabled = true; btn.textContent = 'Saving…';
-                try {
-                    const r = await api('/api/auth/profile', { method: 'POST', body: JSON.stringify({ name }) });
-                    CURRENT_USER.name = r.name;
-                    document.getElementById('sb-name').textContent = r.name;   // update the sidebar
-                    ok.classList.remove('hidden');
-                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
-                finally { btn.disabled = false; btn.textContent = 'Save'; }
-            };
             document.querySelectorAll('#set-theme button').forEach(b => b.onclick = () => setTheme(b.dataset.theme));
             document.getElementById('cp-go').onclick = async () => {
                 const err = document.getElementById('cp-err'); err.classList.add('hidden');
@@ -2521,6 +2499,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
                         <button class="btn btn-ghost" id="cal-btn">Calendar</button>
+                        ${isAdmin() ? '<button class="btn btn-ghost" id="edit-user">Edit</button>' : ''}
                         ${canReset ? '<button class="btn btn-ghost" id="reset-pw">Reset password</button>' : ''}
                         ${canDelete ? '<button class="btn btn-danger" id="delete-user">Delete user</button>' : ''}
                         <div class="panel-score">
@@ -2547,9 +2526,53 @@
                 document.getElementById('delete-user').onclick = () => openDeleteUserModal(emp);
             }
             document.getElementById('cal-btn').onclick = () => openLeaveCalendar(emp);
+            const editBtn = document.getElementById('edit-user');
+            if (editBtn) editBtn.onclick = () => openEditUserModal(emp);
             const clearBtn = document.getElementById('clear-history');
             if (clearBtn) clearBtn.onclick = () => clearUserHistory(emp);
             loadEmpProjects(emp.id);
+        }
+
+        // Admin only — edit a user's name, department and permanent access level.
+        function openEditUserModal(emp) {
+            const deptOpts = allDepartments().map(d => `<option value="${esc(d)}" ${d === emp.department ? 'selected' : ''}>${esc(d)}</option>`).join('');
+            const roles = [['employee', 'Employee / Intern'], ['hr', 'HR'], ['manager', 'Manager'], ['admin', 'Admin']];
+            const isSelf = emp.id === CURRENT_USER.id;
+            openModal(`
+                <div class="modal-head"><h3 class="serif">Edit user</h3><button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <div class="field"><label>Name</label><input type="text" id="eu-name" value="${esc(emp.name)}"></div>
+                    <div class="field"><label>Department</label><input type="text" id="eu-dept" list="eu-deptlist" value="${esc(emp.department)}"><datalist id="eu-deptlist">${deptOpts}</datalist></div>
+                    <div class="field"><label>Permanent access level</label>
+                        <select id="eu-role" ${isSelf ? 'disabled' : ''}>${roles.map(([v, l]) => `<option value="${v}" ${v === emp.access_role ? 'selected' : ''}>${l}</option>`).join('')}</select>
+                        ${isSelf ? '<div class="muted" style="margin-top:6px;">You can’t change your own access level.</div>' : ''}
+                    </div>
+                    <div class="form-error hidden" id="eu-err"></div>
+                    <div class="modal-actions">
+                        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                        <button class="btn btn-primary" id="eu-save">Save changes</button>
+                    </div>
+                </div>`);
+            document.getElementById('eu-save').onclick = async () => {
+                const err = document.getElementById('eu-err'); err.classList.add('hidden');
+                const body = {
+                    name: document.getElementById('eu-name').value.trim(),
+                    department: document.getElementById('eu-dept').value.trim(),
+                };
+                if (!isSelf) body.accessRole = document.getElementById('eu-role').value;
+                if (body.name.length < 2) { err.textContent = 'Name must be at least 2 characters.'; err.classList.remove('hidden'); return; }
+                if (!body.department) { err.textContent = 'Department cannot be empty.'; err.classList.remove('hidden'); return; }
+                const btn = document.getElementById('eu-save'); btn.disabled = true; btn.textContent = 'Saving…';
+                try {
+                    await api('/api/employees/' + emp.id, { method: 'PATCH', body: JSON.stringify(body) });
+                    // refresh the directory (names/depts feed dropdowns and filters)
+                    try { const r = await api('/api/employees'); EMPLOYEES = r.employees; DEPARTMENTS = [...new Set(r.employees.map(x => x.department))].sort(); populateDeptFilters(); } catch (e) {}
+                    if (emp.id === CURRENT_USER.id) { CURRENT_USER.name = body.name; document.getElementById('sb-name').textContent = body.name; }
+                    closeModal();
+                    renderUserDetail(emp.id);
+                    loadUsers();
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Save changes'; }
+            };
         }
 
         // Report calendar: a month grid highlighting leave days (yellow) and days

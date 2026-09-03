@@ -68,6 +68,51 @@ router.post('/:id/reset-password', requireAuth, requireRole('manager', 'admin'),
   res.json({ temporaryPassword: tempPassword });
 });
 
+// PATCH /api/employees/:id — admin only: edit a user's name, department and
+// permanent access level.
+router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  const id = Number(req.params.id);
+  const b = req.body || {};
+  const sets = [];
+  const params = [];
+  const put = (col, val) => { params.push(val); sets.push(`${col} = $${params.length}`); };
+
+  if (b.name !== undefined) {
+    const name = String(b.name).trim();
+    if (name.length < 2) return res.status(400).json({ error: 'Name must be at least 2 characters.' });
+    put('name', name.slice(0, 120));
+  }
+  if (b.department !== undefined) {
+    const dept = String(b.department).trim();
+    if (!dept) return res.status(400).json({ error: 'Department cannot be empty.' });
+    put('department', dept.slice(0, 100));
+  }
+  if (b.accessRole !== undefined) {
+    if (!['employee', 'manager', 'admin', 'hr'].includes(b.accessRole)) {
+      return res.status(400).json({ error: 'Invalid access level.' });
+    }
+    // Don't let an admin lock themselves out by demoting their own account.
+    if (id === req.user.id && b.accessRole !== 'admin') {
+      return res.status(400).json({ error: 'You cannot change your own access level.' });
+    }
+    put('access_role', b.accessRole);
+  }
+  if (!sets.length) return res.status(400).json({ error: 'Nothing to update.' });
+
+  params.push(id);
+  const { rows } = await db.query(
+    `UPDATE employees SET ${sets.join(', ')}, updated_at = now() WHERE id = $${params.length}
+     RETURNING id, name, department, access_role`,
+    params
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Employee not found.' });
+  await db.query(
+    'INSERT INTO audit_log (actor_employee_id, action, target, ip_address) VALUES ($1,$2,$3,$4)',
+    [req.user.id, 'employee_updated', rows[0].id + '', req.ip]
+  );
+  res.json({ employee: rows[0] });
+});
+
 // PATCH /api/employees/:id/status — admin only: activate/deactivate an account
 // (a softer alternative to deletion when someone leaves the company).
 router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
