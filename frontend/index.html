@@ -541,6 +541,22 @@
         .seg button + button { border-left: 1px solid var(--border); }
         .seg button.active { background: var(--brand); color: #fff; }
 
+        /* ── performance daily bar graph ── */
+        .pg-wrap { display: flex; gap: 8px; }
+        .pg-yaxis { display: flex; flex-direction: column; justify-content: space-between; height: 200px; font-size: 10px; color: var(--ink-soft); text-align: right; padding-bottom: 34px; }
+        .pg-plot { position: relative; flex: 1; }
+        .pg-grid { position: absolute; inset: 0 0 34px 0; display: flex; flex-direction: column; justify-content: space-between; }
+        .pg-grid i { display: block; border-top: 1px dashed var(--border); height: 0; }
+        .pg-cols { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; height: 200px; align-items: end; }
+        .pg-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .pg-barwrap { position: relative; width: 100%; height: 166px; display: flex; align-items: flex-end; justify-content: center; }
+        .pg-bar { position: relative; width: 62%; max-width: 34px; border-radius: 6px 6px 0 0; min-height: 2px; transition: height .3s ease; }
+        .pg-val { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; color: var(--ink-soft); }
+        .pg-xlabel { font-size: 10.5px; color: var(--ink-soft); text-align: center; margin-top: 6px; line-height: 1.3; }
+        .pg-xlabel span { display: block; font-weight: 700; color: var(--ink); }
+        .pg-xlabel.today { color: var(--brand-deep); }
+        .pg-xlabel.today span { color: var(--brand-deep); }
+
         /* ── user detail: compact meta + projects/tasks/updates drill-down ── */
         .u-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 14px; margin-bottom: 18px;
             background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-size: 12.5px; color: var(--ink); }
@@ -2470,7 +2486,7 @@
                 <div class="cell"><div class="n">${low}</div><div class="k">Needs attention</div></div>`;
 
             chart.innerHTML = employees.map(e => `
-                <div class="pf-row">
+                <div class="pf-row" data-emp="${e.id}" title="Click to see ${esc(e.name)}'s daily ratings">
                     <div class="pf-name">
                         <span class="nm">${esc(e.name)}</span>
                         <span class="sub">${esc(e.employee_code)} · ${esc(e.department)}</span>
@@ -2478,6 +2494,76 @@
                     <div class="pf-track"><div class="pf-bar ${e.label.cls}" style="width:${Math.max(2, e.score)}%"></div></div>
                     <div class="pf-score">${e.score}</div>
                 </div>`).join('');
+            chart.querySelectorAll('.pf-row[data-emp]').forEach(row => {
+                row.style.cursor = 'pointer';
+                row.onclick = () => {
+                    const e = employees.find(x => x.id == row.dataset.emp);
+                    openDailyGraph(e);
+                };
+            });
+        }
+
+        // Daily-rating bar graph for one employee. Shows the running week by
+        // default; the ‹ › buttons step back/forward a week.
+        let PERF_WEEK_START = null;   // Monday of the shown week
+        function mondayOf(d) {
+            const x = new Date(d); x.setHours(0, 0, 0, 0);
+            const day = (x.getDay() + 6) % 7;   // 0 = Monday
+            x.setDate(x.getDate() - day);
+            return x;
+        }
+        function openDailyGraph(emp) {
+            PERF_WEEK_START = mondayOf(new Date());
+            openModal(`<div class="modal-head"><div><h3 class="serif">Daily ratings</h3>
+                    <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(emp.name)} · rating out of 100 from daily work updates</div></div>
+                    <button class="x" onclick="closeModal()">✕</button></div>
+                <div class="modal-body">
+                    <div class="cal-nav" style="margin-bottom:10px;">
+                        <button class="btn btn-ghost" id="pg-prev">‹ Prev week</button>
+                        <div class="cal-title" id="pg-title"></div>
+                        <button class="btn btn-ghost" id="pg-next">Next week ›</button>
+                    </div>
+                    <div id="pg-chart"><div class="no-entries">Loading…</div></div>
+                    <div style="display:flex;justify-content:center;margin-top:10px;"><button class="pp-team-btn" id="pg-thisweek">This week</button></div>
+                </div>`, true);
+            document.getElementById('pg-prev').onclick = () => { PERF_WEEK_START.setDate(PERF_WEEK_START.getDate() - 7); renderDailyGraph(emp); };
+            document.getElementById('pg-next').onclick = () => { PERF_WEEK_START.setDate(PERF_WEEK_START.getDate() + 7); renderDailyGraph(emp); };
+            document.getElementById('pg-thisweek').onclick = () => { PERF_WEEK_START = mondayOf(new Date()); renderDailyGraph(emp); };
+            renderDailyGraph(emp);
+        }
+
+        async function renderDailyGraph(emp) {
+            const box = document.getElementById('pg-chart');
+            const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const start = new Date(PERF_WEEK_START);
+            const end = new Date(start); end.setDate(end.getDate() + 6);
+            // don't let the user jump into future weeks past today
+            const nextBtn = document.getElementById('pg-next');
+            if (nextBtn) nextBtn.disabled = mondayOf(new Date()).getTime() <= start.getTime();
+            document.getElementById('pg-title').textContent = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' – ' + end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            box.innerHTML = '<div class="no-entries">Loading…</div>';
+            let days = [];
+            try { days = (await api(`/api/reports/employees/${emp.id}/daily?from=${iso(start)}&to=${iso(end)}`)).days; }
+            catch (e) { box.innerHTML = `<div class="no-entries">${esc(e.message)}</div>`; return; }
+            const todayISO = iso(new Date());
+            const barColor = (s) => s >= 75 ? 'var(--green)' : s >= 50 ? 'var(--warn)' : (s > 0 ? 'var(--red)' : 'var(--track)');
+            // simple CSS bar chart: gridlines + a column per day
+            box.innerHTML = `
+                <div class="pg-wrap">
+                    <div class="pg-yaxis"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
+                    <div class="pg-plot">
+                        <div class="pg-grid"><i></i><i></i><i></i><i></i><i></i></div>
+                        <div class="pg-cols">${days.map(d => {
+                            const label = new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                            const dnum = new Date(d.date + 'T00:00:00').getDate();
+                            const future = d.date > todayISO;
+                            return `<div class="pg-col">
+                                <div class="pg-barwrap">${future ? '' : `<div class="pg-bar" style="height:${Math.max(d.score, 1.5)}%;background:${barColor(d.score)};"><span class="pg-val">${d.score}</span></div>`}</div>
+                                <div class="pg-xlabel ${d.date === todayISO ? 'today' : ''}">${label}<span>${dnum}</span></div>
+                            </div>`;
+                        }).join('')}</div>
+                    </div>
+                </div>`;
         }
 
         async function renderUserDetail(id) {

@@ -37,10 +37,25 @@ function computeStats(entries, windowDays = 30) {
   };
 }
 
+// Rating out of 100 for a SINGLE day, from that day's work entry (or null if
+// nothing was submitted): 45 for submitting, up to 25 for volume, up to 20 for
+// detail, 10 for evidence.
+function dailyScore(entry) {
+  if (!entry) return 0;
+  const bullets = entry.bullets || [];
+  const submitted = 45;
+  const volume = Math.min(1, bullets.length / 3) * 25;
+  const wordCounts = bullets.map((b) => String(b).trim().split(/\s+/).filter(Boolean).length);
+  const avgWords = wordCounts.length ? wordCounts.reduce((a, b) => a + b, 0) / wordCounts.length : 0;
+  const detail = Math.max(0, Math.min(1, (avgWords - 2) / 6)) * 20;
+  const evidence = (entry.attachment_note || entry.attachment_url) ? 10 : 0;
+  return Math.round(submitted + volume + detail + evidence);
+}
+
 function scoreLabel(score) {
   if (score >= 75) return { text: 'Strong', cls: 'score-strong' };
   if (score >= 50) return { text: 'Steady', cls: 'score-steady' };
   return { text: 'Needs attention', cls: 'score-low' };
 }
 
-module.exports = { computeStats, scoreLabel };
+module.exports = { computeStats, scoreLabel, dailyScore };

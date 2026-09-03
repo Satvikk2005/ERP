@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { computeStats, scoreLabel } = require('../utils/scoring');
+const { computeStats, scoreLabel, dailyScore } = require('../utils/scoring');
 
 const router = express.Router();
 
@@ -171,6 +171,32 @@ router.get('/employees/:id/calendar', requireAuth, requireRole('manager', 'admin
   const leaveDays = [...new Set(leaves.map((r) => r.d))];
 
   res.json({ reportDays, leaveDays });
+});
+
+// GET /api/reports/employees/:id/daily?from=&to= — a daily rating (0-100) for
+// each day in the range, based on that day's work update. (manager/admin/hr)
+router.get('/employees/:id/daily', requireAuth, requireRole('manager', 'admin', 'hr'), async (req, res) => {
+  const { id, } = req.params;
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'from and to dates are required.' });
+
+  const { rows } = await db.query(
+    `SELECT entry_date, bullets, attachment_note, attachment_url FROM work_entries
+     WHERE employee_id = $1 AND entry_date BETWEEN $2 AND $3`,
+    [id, from, to]
+  );
+  const byDate = {};
+  rows.forEach((r) => { byDate[r.entry_date] = r; });
+
+  // Emit one point per calendar day in [from, to] (0 where nothing was logged).
+  const days = [];
+  const start = new Date(from + 'T00:00:00');
+  const end = new Date(to + 'T00:00:00');
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10);
+    days.push({ date: iso, score: dailyScore(byDate[iso] || null) });
+  }
+  res.json({ days });
 });
 
 module.exports = router;
