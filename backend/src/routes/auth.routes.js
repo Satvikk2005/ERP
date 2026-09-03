@@ -136,6 +136,16 @@ router.post('/change-password', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/auth/profile  { name } — update your own display name.
+router.post('/profile', requireAuth, async (req, res) => {
+  const name = (req.body && req.body.name ? String(req.body.name) : '').trim();
+  if (name.length < 2) return res.status(400).json({ error: 'Please enter your name (at least 2 characters).' });
+  const clean = name.slice(0, 120);
+  await db.query('UPDATE employees SET name = $1, updated_at = now() WHERE id = $2', [clean, req.user.id]);
+  await logAudit(req.user.id, 'profile_updated', clean, req.ip);
+  res.json({ ok: true, name: clean });
+});
+
 // GET /api/auth/me
 router.get('/me', requireAuth, async (req, res) => {
   const { rows } = await db.query(

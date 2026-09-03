@@ -1809,8 +1809,16 @@
                 <div class="settings-grid">
                     <div class="set-card">
                         <div class="section-title" style="margin-bottom:14px;">Account</div>
+                        <div class="field" style="margin-bottom:12px;">
+                            <label>Name</label>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <input type="text" id="pf-name" value="${esc(u.name)}" style="flex:1;">
+                                <button class="btn btn-primary" id="pf-name-save" style="flex-shrink:0;">Save</button>
+                            </div>
+                            <div class="form-error hidden" id="pf-name-err" style="margin-top:8px;"></div>
+                            <div class="saved-msg hidden" id="pf-name-ok" style="display:block;margin-top:8px;">Name updated.</div>
+                        </div>
                         <div class="u-meta" style="margin-bottom:0;">
-                            <span><b>Name</b> ${esc(u.name)}</span>
                             <span><b>Email</b> ${esc(u.email || '—')}</span>
                             <span><b>Department</b> ${esc(u.department || '—')}</span>
                             <span><b>Access level</b> ${roleLabel(u.baseRole || u.accessRole)}</span>
@@ -1850,6 +1858,20 @@
                         <button class="btn btn-primary" id="cp-go">Update password</button>
                     </div>
                 </div>`;
+            document.getElementById('pf-name-save').onclick = async () => {
+                const err = document.getElementById('pf-name-err'); err.classList.add('hidden');
+                const ok = document.getElementById('pf-name-ok'); ok.classList.add('hidden');
+                const name = document.getElementById('pf-name').value.trim();
+                if (name.length < 2) { err.textContent = 'Enter your name (at least 2 characters).'; err.classList.remove('hidden'); return; }
+                const btn = document.getElementById('pf-name-save'); btn.disabled = true; btn.textContent = 'Saving…';
+                try {
+                    const r = await api('/api/auth/profile', { method: 'POST', body: JSON.stringify({ name }) });
+                    CURRENT_USER.name = r.name;
+                    document.getElementById('sb-name').textContent = r.name;   // update the sidebar
+                    ok.classList.remove('hidden');
+                } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+                finally { btn.disabled = false; btn.textContent = 'Save'; }
+            };
             document.querySelectorAll('#set-theme button').forEach(b => b.onclick = () => setTheme(b.dataset.theme));
             document.getElementById('cp-go').onclick = async () => {
                 const err = document.getElementById('cp-err'); err.classList.add('hidden');
