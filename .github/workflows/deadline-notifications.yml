@@ -1,0 +1,27 @@
+name: Deadline notifications
+
+# Runs once a day and asks the backend to push "due today / due tomorrow"
+# reminders to task assignees. Also wakes the free-tier backend if it's asleep.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   API_BASE_URL  e.g. https://your-backend.onrender.com
+#   CRON_SECRET   any long random string; must match the CRON_SECRET env var
+#                 set on the backend (Render → Environment).
+on:
+  schedule:
+    - cron: '30 3 * * *'   # 03:30 UTC ≈ 09:00 IST every day
+  workflow_dispatch: {}      # allows running it manually from the Actions tab
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deadline check
+        run: |
+          curl -fsS -X POST "$API_BASE_URL/api/push/run-deadline-check" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --max-time 60 --retry 3 --retry-delay 20
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

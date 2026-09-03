@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { sendPushToEmployees } = require('../utils/push');
 
 const router = express.Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -211,6 +212,12 @@ router.post('/', requireAuth, wrap(async (req, res) => {
   const label = parent ? `subtask "${full[0].title}" under "${parent.title}"` : `"${full[0].title}"`;
   await logActivity(db, pid, req.user.id, parent ? 'subtask_added' : 'task_assigned',
     `${parent ? 'added' : 'assigned'} ${label} to ${names}`);
+  // Notify assignees (except the person doing the assigning) via web push.
+  sendPushToEmployees(ids.filter((id) => id !== req.user.id), {
+    title: parent ? 'New subtask assigned' : 'New task assigned',
+    body: `${full[0].title} · ${full[0].project_name}${full[0].task_date ? ' · due ' + full[0].task_date : ''}`,
+    url: '/',
+  }).catch(() => {});
   res.status(201).json({ task: scrubStipend(full[0], req.user) });
 }));
 

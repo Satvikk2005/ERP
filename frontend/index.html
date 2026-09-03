@@ -919,6 +919,7 @@
                 DEPARTMENTS = [...new Set(employees.map(e => e.department))].sort();
             } catch (e) { EMPLOYEES = []; DEPARTMENTS = []; }
             populateDeptFilters();
+            registerSW();   // ready the service worker for web-push notifications
             switchView('home');
         }
 
@@ -1736,6 +1737,55 @@
                 </tbody></table></div></div>`;
         }
 
+        // ════════ WEB PUSH (browser notifications) ════════
+        const PUSH_SUPPORTED = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+        let SW_REG = null;
+        async function registerSW() {
+            if (!PUSH_SUPPORTED) return null;
+            if (SW_REG) return SW_REG;
+            try { SW_REG = await navigator.serviceWorker.register('/sw.js'); return SW_REG; }
+            catch (e) { return null; }
+        }
+        function urlB64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            const arr = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            return arr;
+        }
+        async function isPushSubscribed() {
+            if (!PUSH_SUPPORTED) return false;
+            const reg = await registerSW();
+            if (!reg) return false;
+            const sub = await reg.pushManager.getSubscription();
+            return !!sub;
+        }
+        async function enablePush() {
+            const reg = await registerSW();
+            if (!reg) throw new Error('Notifications are not supported on this device/browser.');
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') throw new Error('Notification permission was not granted.');
+            const { key, enabled } = await api('/api/push/public-key');
+            if (!enabled || !key) throw new Error('Push notifications are not configured on the server yet.');
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(key) });
+            }
+            await api('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: sub }) });
+        }
+        async function disablePush() {
+            const reg = await registerSW();
+            if (!reg) return;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                try { await api('/api/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint: sub.endpoint }) }); } catch (e) {}
+                await sub.unsubscribe();
+            }
+        }
+        const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
         // ════════ SETTINGS ════════
         let SETTINGS_TAB = 'account';
         function roleLabel(r) { return ({ employee: 'Employee / Intern', manager: 'Manager', hr: 'HR', admin: 'Admin' })[r] || r; }
@@ -1778,6 +1828,12 @@
                     </div>
 
                     <div class="set-card" style="grid-column:1/-1;">
+                        <div class="section-title" style="margin-bottom:6px;">Notifications</div>
+                        <p class="muted" style="margin-bottom:12px;">Get a notification on this device when a task is assigned to you or a deadline is near — even when the tab is closed.</p>
+                        <div id="notif-box"><div class="muted">Checking…</div></div>
+                    </div>
+
+                    <div class="set-card" style="grid-column:1/-1;">
                         <div class="section-title" style="margin-bottom:12px;">Change password</div>
                         <div class="row2">
                             <div class="field"><label>Current password</label>
@@ -1807,6 +1863,50 @@
                     ok.classList.remove('hidden');
                 } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
                 finally { btn.disabled = false; btn.textContent = 'Update password'; }
+            };
+            renderNotifBox();
+        }
+
+        async function renderNotifBox() {
+            const box = document.getElementById('notif-box');
+            if (!box) return;
+            if (!PUSH_SUPPORTED) {
+                box.innerHTML = '<div class="muted">This browser doesn’t support notifications.</div>';
+                return;
+            }
+            if (isIOS && !isStandalone) {
+                box.innerHTML = `<div class="temp-banner" style="background:var(--blue-soft);color:var(--blue);border-color:#cddcec;">
+                    To get notifications on iPhone, tap the <b>Share</b> button in Safari, choose <b>Add to Home Screen</b>, then open Accesco from the home-screen icon and enable notifications here.</div>`;
+                return;
+            }
+            if (Notification.permission === 'denied') {
+                box.innerHTML = '<div class="muted">Notifications are blocked in your browser settings. Allow them for this site, then reload.</div>';
+                return;
+            }
+            const subscribed = await isPushSubscribed();
+            box.innerHTML = subscribed
+                ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                       <span class="pill open">On for this device</span>
+                       <button class="btn btn-ghost" id="notif-test">Send test</button>
+                       <button class="btn btn-danger" id="notif-off">Turn off</button>
+                   </div><div class="form-error hidden" id="notif-err"></div>`
+                : `<button class="btn btn-primary" id="notif-on">Enable notifications on this device</button>
+                   <div class="form-error hidden" id="notif-err"></div>`;
+            const err = () => document.getElementById('notif-err');
+            const on = document.getElementById('notif-on');
+            if (on) on.onclick = async () => {
+                err().classList.add('hidden'); on.disabled = true; on.textContent = 'Enabling…';
+                try { await enablePush(); renderNotifBox(); }
+                catch (e) { err().textContent = e.message; err().classList.remove('hidden'); on.disabled = false; on.textContent = 'Enable notifications on this device'; }
+            };
+            const off = document.getElementById('notif-off');
+            if (off) off.onclick = async () => { await disablePush(); renderNotifBox(); };
+            const test = document.getElementById('notif-test');
+            if (test) test.onclick = async () => {
+                test.disabled = true; test.textContent = 'Sending…';
+                try { await api('/api/push/test', { method: 'POST' }); }
+                catch (e) { err().textContent = e.message; err().classList.remove('hidden'); }
+                finally { test.disabled = false; test.textContent = 'Send test'; }
             };
         }
 
