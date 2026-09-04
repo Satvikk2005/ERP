@@ -556,6 +556,9 @@
         .pg-xlabel span { display: block; font-weight: 700; color: var(--ink); }
         .pg-xlabel.today { color: var(--brand-deep); }
         .pg-xlabel.today span { color: var(--brand-deep); }
+        .pg-range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; justify-content: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .pg-range label { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px; color: var(--ink-soft); font-weight: 600; }
+        .pg-range input[type="date"] { border: 1px solid var(--border); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12px; }
 
         /* ── user detail: compact meta + projects/tasks/updates drill-down ── */
         .u-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 14px; margin-bottom: 18px;
@@ -2504,49 +2507,97 @@
         }
 
         // Daily-rating bar graph for one employee. Shows the running week by
-        // default; the ‹ › buttons step back/forward a week.
-        let PERF_WEEK_START = null;   // Monday of the shown week
+        // default; the ‹ › buttons step back/forward by the shown span, and a
+        // custom From/To picker lets you analyse any date range or single day.
+        const MAX_RANGE_DAYS = 92;    // keep the chart readable
+        let PERF_RANGE = null;        // { from: Date, to: Date } — the shown window
+        const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         function mondayOf(d) {
             const x = new Date(d); x.setHours(0, 0, 0, 0);
             const day = (x.getDay() + 6) % 7;   // 0 = Monday
             x.setDate(x.getDate() - day);
             return x;
         }
+        function thisWeekRange() {
+            const from = mondayOf(new Date());
+            const to = new Date(from); to.setDate(to.getDate() + 6);
+            return { from, to };
+        }
         function openDailyGraph(emp) {
-            PERF_WEEK_START = mondayOf(new Date());
+            PERF_RANGE = thisWeekRange();
+            const today = isoDate(new Date());
             openModal(`<div class="modal-head"><div><h3 class="serif">Daily ratings</h3>
                     <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">${esc(emp.name)} · rating out of 100 from daily work updates</div></div>
                     <button class="x" onclick="closeModal()">✕</button></div>
                 <div class="modal-body">
                     <div class="cal-nav" style="margin-bottom:10px;">
-                        <button class="btn btn-ghost" id="pg-prev">‹ Prev week</button>
+                        <button class="btn btn-ghost" id="pg-prev">‹ Prev</button>
                         <div class="cal-title" id="pg-title"></div>
-                        <button class="btn btn-ghost" id="pg-next">Next week ›</button>
+                        <button class="btn btn-ghost" id="pg-next">Next ›</button>
                     </div>
                     <div id="pg-chart"><div class="no-entries">Loading…</div></div>
-                    <div style="display:flex;justify-content:center;margin-top:10px;"><button class="pp-team-btn" id="pg-thisweek">This week</button></div>
+                    <div class="pg-range">
+                        <label>From<input type="date" id="pg-from" max="${today}"></label>
+                        <label>To<input type="date" id="pg-to" max="${today}"></label>
+                        <button class="pp-team-btn" id="pg-apply">Apply</button>
+                        <button class="pp-team-btn" id="pg-thisweek">This week</button>
+                        <button class="pp-team-btn" id="pg-30d">Last 30 days</button>
+                    </div>
                 </div>`, true);
-            document.getElementById('pg-prev').onclick = () => { PERF_WEEK_START.setDate(PERF_WEEK_START.getDate() - 7); renderDailyGraph(emp); };
-            document.getElementById('pg-next').onclick = () => { PERF_WEEK_START.setDate(PERF_WEEK_START.getDate() + 7); renderDailyGraph(emp); };
-            document.getElementById('pg-thisweek').onclick = () => { PERF_WEEK_START = mondayOf(new Date()); renderDailyGraph(emp); };
+            const rangeLen = () => Math.round((PERF_RANGE.to - PERF_RANGE.from) / 86400000) + 1;
+            const shift = (dir) => {
+                const n = rangeLen();
+                PERF_RANGE.from.setDate(PERF_RANGE.from.getDate() + dir * n);
+                PERF_RANGE.to.setDate(PERF_RANGE.to.getDate() + dir * n);
+            };
+            document.getElementById('pg-prev').onclick = () => { shift(-1); renderDailyGraph(emp); };
+            document.getElementById('pg-next').onclick = () => { shift(1); renderDailyGraph(emp); };
+            document.getElementById('pg-thisweek').onclick = () => { PERF_RANGE = thisWeekRange(); renderDailyGraph(emp); };
+            document.getElementById('pg-30d').onclick = () => {
+                const to = new Date(); to.setHours(0, 0, 0, 0);
+                const from = new Date(to); from.setDate(from.getDate() - 29);
+                PERF_RANGE = { from, to }; renderDailyGraph(emp);
+            };
+            document.getElementById('pg-apply').onclick = () => {
+                const fv = document.getElementById('pg-from').value;
+                const tv = document.getElementById('pg-to').value;
+                if (!fv || !tv) return alert('Pick both a From and a To date (set them the same for a single day).');
+                let from = new Date(fv + 'T00:00:00'), to = new Date(tv + 'T00:00:00');
+                if (from > to) { const t = from; from = to; to = t; }   // tolerate reversed input
+                const span = Math.round((to - from) / 86400000) + 1;
+                if (span > MAX_RANGE_DAYS) return alert(`Please choose a range of ${MAX_RANGE_DAYS} days or fewer.`);
+                PERF_RANGE = { from, to }; renderDailyGraph(emp);
+            };
             renderDailyGraph(emp);
         }
 
         async function renderDailyGraph(emp) {
             const box = document.getElementById('pg-chart');
-            const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const start = new Date(PERF_WEEK_START);
-            const end = new Date(start); end.setDate(end.getDate() + 6);
-            // don't let the user jump into future weeks past today
+            const start = new Date(PERF_RANGE.from);
+            const end = new Date(PERF_RANGE.to);
+            const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+            // don't let the user page past today
             const nextBtn = document.getElementById('pg-next');
-            if (nextBtn) nextBtn.disabled = mondayOf(new Date()).getTime() <= start.getTime();
-            document.getElementById('pg-title').textContent = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' – ' + end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (nextBtn) nextBtn.disabled = end.getTime() >= todayMid.getTime();
+            // keep the picker inputs in sync with the shown window
+            const fromInp = document.getElementById('pg-from'); if (fromInp) fromInp.value = isoDate(start);
+            const toInp = document.getElementById('pg-to'); if (toInp) toInp.value = isoDate(end);
+            const singleDay = isoDate(start) === isoDate(end);
+            document.getElementById('pg-title').textContent = singleDay
+                ? start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                : start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' – ' + end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             box.innerHTML = '<div class="no-entries">Loading…</div>';
             let days = [];
-            try { days = (await api(`/api/reports/employees/${emp.id}/daily?from=${iso(start)}&to=${iso(end)}`)).days; }
+            try { days = (await api(`/api/reports/employees/${emp.id}/daily?from=${isoDate(start)}&to=${isoDate(end)}`)).days; }
             catch (e) { box.innerHTML = `<div class="no-entries">${esc(e.message)}</div>`; return; }
-            const todayISO = iso(new Date());
+            const todayISO = isoDate(new Date());
             const barColor = (s) => s >= 75 ? 'var(--green)' : s >= 50 ? 'var(--warn)' : (s > 0 ? 'var(--red)' : 'var(--track)');
+            // For wide windows, weekday names crowd the axis — show only the day
+            // number (with a month tick on the 1st) once past two weeks.
+            const dense = days.length > 14;
+            // average across the days that have actually happened (exclude future)
+            const past = days.filter(d => d.date <= todayISO);
+            const avg = past.length ? Math.round(past.reduce((s, d) => s + d.score, 0) / past.length) : 0;
             // simple CSS bar chart: gridlines + a column per day
             box.innerHTML = `
                 <div class="pg-wrap">
@@ -2554,16 +2605,20 @@
                     <div class="pg-plot">
                         <div class="pg-grid"><i></i><i></i><i></i><i></i><i></i></div>
                         <div class="pg-cols">${days.map(d => {
-                            const label = new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
-                            const dnum = new Date(d.date + 'T00:00:00').getDate();
+                            const dt = new Date(d.date + 'T00:00:00');
+                            const dnum = dt.getDate();
                             const future = d.date > todayISO;
+                            const label = dense
+                                ? (dnum === 1 ? dt.toLocaleDateString('en-US', { month: 'short' }) : '')
+                                : dt.toLocaleDateString('en-US', { weekday: 'short' });
                             return `<div class="pg-col">
-                                <div class="pg-barwrap">${future ? '' : `<div class="pg-bar" style="height:${Math.max(d.score, 1.5)}%;background:${barColor(d.score)};"><span class="pg-val">${d.score}</span></div>`}</div>
+                                <div class="pg-barwrap">${future ? '' : `<div class="pg-bar" style="height:${Math.max(d.score, 1.5)}%;background:${barColor(d.score)};"><span class="pg-val">${dense ? '' : d.score}</span></div>`}</div>
                                 <div class="pg-xlabel ${d.date === todayISO ? 'today' : ''}">${label}<span>${dnum}</span></div>
                             </div>`;
                         }).join('')}</div>
                     </div>
-                </div>`;
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:10px;">Average over ${past.length || 0} day${past.length === 1 ? '' : 's'} in view: <strong style="color:var(--ink);">${avg}</strong> / 100</div>`;
         }
 
         async function renderUserDetail(id) {
